@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1629131649267.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1261846302",
+    "id" : "D2588CD5",
+    "lastKnownWriteTime" : 1629163113,
+    "last_content_update" : 1629163113218,
+    "path" : "~/npOddsRatio/R/npOddsRatio.R",
+    "project_path" : "R/npOddsRatio.R",
+    "properties" : {
+        "cursorPosition" : "18,23",
+        "scrollLine" : "9",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1628552855757.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "85D85BB6",
+    "lastKnownWriteTime" : 1628552960,
+    "last_content_update" : 1628552960263,
+    "path" : "~/npOddsRatio/R/Lrnr_hal9001.R",
+    "project_path" : "R/Lrnr_hal9001.R",
+    "properties" : {
+        "cursorPosition" : "1,10",
+        "scrollLine" : "0",
+        "tempName" : "Untitled2"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

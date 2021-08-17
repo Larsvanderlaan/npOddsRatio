@@ -1,0 +1,27 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1628552485128.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3666308182",
+    "id" : "E587085",
+    "lastKnownWriteTime" : 1629162971,
+    "last_content_update" : 1629162971014,
+    "path" : "~/npOddsRatio/R/implementation.Rmd",
+    "project_path" : "R/implementation.Rmd",
+    "properties" : {
+        "cursorPosition" : "22,1",
+        "last_setup_crc32" : "37D31D96bb338d19",
+        "scrollLine" : "15",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
