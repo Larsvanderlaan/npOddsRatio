@@ -2,9 +2,7 @@
 % Please edit documentation in R/npORMissing.R
 \name{npORMissing}
 \alias{npORMissing}
-\title{Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness..
-This version also allows for the outcome is missing-at-random conditional on A,W.
-The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.}
+\title{Nonparametric Targeted inference for the conditional odds ratio with post-treatment informed outcome missingness.}
 \usage{
 npORMissing(
   working_formula = logOR ~ 1,
@@ -30,8 +28,8 @@ npORMissing(
 )
 }
 \arguments{
-\item{working_formula}{An R formula object describing the functional form of the conditional log odds ratio as a fnction of `W`.
-This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.}
+\item{working_formula}{An working-model R formula object describing the functional form of the approximation of the conditional log odds ratio as a fnction of `W`.
+#' This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.}
 
 \item{W}{A named matrix of baseline covariates}
 
@@ -39,15 +37,18 @@ This corresponds with `f(W)` in the partially linear logistic-link model `logit(
 
 \item{Y}{A binary outcome variable with values in (0,1)}
 
+\item{Z}{A matrix of post-treatment variables that inform the missingness of the outcome `Y`.
+This variable can be NULL if the missingness is only effected by `A` and `W`.}
+
 \item{Delta}{A binary vector that takes the value 1 if `Y` is osberved/not-missing and 0 otherwise.}
 
 \item{weights}{An optional vector of weights for each observation. Use with caution. This can lead to invalid inferences if included naively.}
 
 \item{W_new}{An optional matrix of new values of the baseline covariates `W` at which to predict odds ratio.}
 
-\item{glm_formula_Y0W}{(Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`}
+\item{glm_formula_Y0W}{(Not recommended). An optional R formula object describing the nuisance function `logit(P(Y=1|A=0,W))`.}
 
-\item{glm_formula_OR}{(Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`}
+\item{glm_formula_OR}{(Not recommended). An optional R formula object describing the conditional odds ratio.}
 
 \item{glm_formula_A}{(Not recommended). An optional R formula object describing the functional form of P(A=1|W). If provided, \code{glm} is used for the fitting. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 
@@ -57,9 +58,16 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 \item{glm_formula_Delta}{(Not recommended). An optional R formula object describing the functional form of P(Delta=1|A,W) to fit with glm. If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 
 \item{sl3_learner_Delta}{An optional \code{tlverse/sl3} learner object used to estimate P(Delta=1|A,W).}
+
+\item{glm_formula_YZ}{A(Not recommended). An optional R formula object describing the functional form of the full conditional outcome mean P(Y=1|Z,A,W). If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
+
+\item{sl3_learner_YZ}{An optional \code{tlverse/sl3} learner object used to estimate the full conditional outcome mean P(Y=1|Z,A,W).}
 }
 \description{
-Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness..
-This version also allows for the outcome is missing-at-random conditional on A,W.
-The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.
+Nonparametric Targeted estimates and inference for the conditional odds ratio with a user-specified parametric working-model with `post-treatment`` informative outcome missingness..
+This version also allows for the outcome is missing-at-random conditional on Z,A,W.
+Note this version is totally nonparametric and requires no assumptions on the functional form of the conditional odds ratio for correct inference.
+The user-specified working model is used to find a best-approximation (relative to the working-model) of the true conditional odds ratio.
+This function can be viewed as a nonparametric version of the partially-linear logistic regression model where one uses the working model `logit(P(Y=1|A,W)) = b* A f(W) +  logit(P(Y=1|A=0,W)` for a user-specified parametric function `f(W)` to approximate the true function.
+Nonparametrically correct and efficient inference is given for this best approximation of the conditional odds ratio.
 }

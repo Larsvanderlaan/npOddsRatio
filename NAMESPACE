@@ -3,6 +3,7 @@
 export()
 export(npOR)
 export(npORMissing)
+export(spOR)
 export(spORmissing)
 importFrom(R6,R6Class)
 importFrom(origami,folds2foldvec)

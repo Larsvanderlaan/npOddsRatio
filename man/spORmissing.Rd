@@ -2,9 +2,7 @@
 % Please edit documentation in R/spORmissing.R
 \name{spORmissing}
 \alias{spORmissing}
-\title{Semiparametric Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness.
-This version also allows for the outcome is missing-at-random conditional on Z,A,W where Z comes after A.
-The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.}
+\title{Semiparametric Targeted inference for the conditional odds ratio with post-treatment informed outcome missingness.}
 \usage{
 spORmissing(
   formula = logOR ~ 1,
@@ -33,7 +31,7 @@ spORmissing(
 )
 }
 \arguments{
-\item{formula}{An R formula object describing the functional form of the conditional log odds ratio as a fnction of `W`.
+\item{formula}{An R formula object describing the functional form of the conditional log odds ratio as a function of `W`.
 This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.}
 
 \item{W}{A named matrix of baseline covariates}
@@ -82,4 +80,8 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 Semiparametric Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness.
 This version also allows for the outcome is missing-at-random conditional on Z,A,W where Z comes after A.
 The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.
+Thus, only a correct parametric model is assumed for the conditional odds ratio, and all other nuisance functions are unspecified (nonparametric).
+}
+\details{
+NOTE: For more robust nonparametrically correct inference with no parametric assumptions, use the function \link[npORMissing] instead. In the \link[npORMissing] function, the user-specified parametric model is instead treated as an approximation rather than the truth.
 }
