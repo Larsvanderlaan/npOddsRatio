@@ -5,7 +5,7 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "1855633088",
     "id" : "89D5CF30",
     "lastKnownWriteTime" : 1629164835,
     "last_content_update" : 1629164835,
@@ -15,10 +15,10 @@
         "cursorPosition" : "0,0",
         "scrollLine" : "0"
     },
-    "read_only" : false,
+    "read_only" : true,
     "read_only_alternatives" : [
     ],
-    "relative_order" : 4,
+    "relative_order" : 8,
     "source_on_save" : false,
     "source_window" : "",
     "type" : "r_namespace"

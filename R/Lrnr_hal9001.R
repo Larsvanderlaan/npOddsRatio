@@ -34,11 +34,21 @@ Lrnr_hal9001_custom <- R6Class(
       outcome_type <- self$get_outcome_type(task)
 
       if (is.null(args$family)) {
-        args$family <- args$family <- outcome_type$glm_family()
+        args$family  <- outcome_type$glm_family()
       }
 
+
+      if(args$family=="binomial" && !all(task$Y %in% c(0,1))) {
+        args$family <- binomial()
+        args$Y <- task$Y
+      } else {
+        args$Y <- outcome_type$format(task$Y)
+      }
+
+
+
       args$X <- as.matrix(task$X)
-      args$Y <- outcome_type$format(task$Y)
+
       args$yolo <- FALSE
       args$formula <- args$formula_hal
       #args$fit_control <- list()

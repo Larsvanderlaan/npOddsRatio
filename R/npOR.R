@@ -1,84 +1,118 @@
 
 
-
-#' Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness..
-#' This version also allows for the outcome is missing-at-random conditional on A,W.
-#' The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.
+#' Nonparametric Targeted inference for the conditional odds ratio with outcome missingness.
 #'
-#' @param formula An R formula object describing the functional form of the conditional log odds ratio as a fnction of `W`.
-#' This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.
+#' Nonparametric Targeted estimates and inference for the conditional odds ratio with a user-specified parametric working-model with informative outcome missingness due to `A` and `W`.
+#' This version also allows for the outcome to be missing-at-random conditional on A,W.
+#' Note this version is totally nonparametric and requires no assumptions on the functional form of the conditional odds ratio for correct inference.
+#' The user-specified working model is used to find a best-approximation (relative to the working-model) of the true conditional odds ratio.
+#' This function can be viewed as a nonparametric version of the partially-linear logistic regression model where one uses the working model `logit(P(Y=1|A,W)) = b* A f(W) +  logit(P(Y=1|A=0,W)` for a user-specified parametric function `f(W)` to approximate the true function.
+#' Nonparametrically correct and efficient inference is given for this best approximation of the conditional odds ratio.
+#'
+#' @param working_formula An working-model R formula object describing the functional form of the approximation of the conditional log odds ratio as a fnction of `W`.
 #' @param W A named matrix of baseline covariates
 #' @param A A binary vector with values in (0,1) encoding the treatment assignment
 #' @param Y A binary outcome variable with values in (0,1)
 #' @param Delta A binary vector that takes the value 1 if `Y` is osberved/not-missing and 0 otherwise.
 #' @param weights An optional vector of weights for each observation. Use with caution. This can lead to invalid inferences if included naively.
 #' @param W_new An optional matrix of new values of the baseline covariates `W` at which to predict odds ratio.
+#' @param glm_formula_Y0W (Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`
+#' @param sl3_learner_Y0W
+#' @param glm_formula_OR (Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`
+#' @param sl3_learner_OR
 #' @param glm_formula_A (Not recommended). An optional R formula object describing the functional form of P(A=1|W). If provided, \code{glm} is used for the fitting. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)
 #' @param  sl3_learner_A An optional \code{tlverse/sl3} learner object used to estimate P(A=1|W).
 #'  If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a default learner is used (Lrnr_hal9001).
-#' @param glm_formula_Y0W (Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`
-#' @param smoothness_order_Y0W Smoothness order of the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)` to be estimated nonparametrically using the Highly Adaptive Lasso (\link{hal9001}), a powerful spline regression algorithm. 0 = discontinuous piece-wise constant function, 1 = continuous piece-wise linear, 2 = smooth piece-wise quadratic
-#' @param max_degree_Y0W Max degree of interaction (of spline basis functions) of the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)` to be estimated nonparametrically using the Highly Adaptive Lasso (\link{hal9001}). `max_degree=1` corresponds with an additive model, `max_degree=2` corresponds with a bi-additive (two-way) model. This parameter significantly affects computation time.
-#' @param num_knots_Y0W A vector specifying the number of knots to use when generating `HAL` spline basis functions of each interaction degree. For computational benefits, the number of knots should decrease exponentially with degree.
-#' @param reduce_basis See analagous argument in package \link{hal9001}.
-#' @param fit_control See analagous argument in package \link{hal9001}.
-#' @param ... Other arguments to be passed to \link{hal9001::fit_hal} for fitting.
+#' @param glm_formula_Delta (Not recommended). An optional R formula object describing the functional form of P(Delta=1|A,W) to fit with glm. If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)
+#' @param sl3_learner_Delta An optional \code{tlverse/sl3} learner object used to estimate P(Delta=1|A,W).
+#' @param sl3_learner_default
 #' @export
-npOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Y_W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), ... ) {
+#'
+npOR  <- function(working_formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W,  glm_formula_Y0W = NULL, sl3_learner_Y0W = NULL,  glm_formula_OR = NULL, sl3_learner_OR = NULL, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta = NULL, sl3_learner_Delta = NULL, sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)) ) {
+
   W <- as.matrix(W)
   if(is.null(Delta)) {
     Delta <- rep(1, nrow(W))
   }
 
   n <- nrow(W)
-  formula <- as.formula(formula)
+  formula <- as.formula(working_formula)
   V <- model.matrix(formula, data = as.data.frame(W))
   V_new <- model.matrix(formula, data = as.data.frame(W_new))
   if(is.null(weights)) {
     weights <- rep(1, nrow(W))
   }
-  weights <- Delta * weights
+
   keep <- Delta==1
-  if(any(!keep)){
-    #Subset to non missing
-    V <- V[keep,]
-    Delta <- Delta[keep ]
-    W_new <- W_new[keep, ]
-    W <- W[keep, ]
-    A <- A[keep ]
-    Y <- Y[keep ]
+
+  ################################################################################################
+  #### Learn P(Y=1|A=0,X)   #########################
+  ################################################################################################
+  if(is.null(sl3_learner_Y0W)) {
+    sl3_learner_Y0W <- sl3_learner_default
   }
-  ################################################################################################
-  #### Learn P(Y=1|A,X) under partially linear logistic model assumption #########################
-  ################################################################################################
-  if(is.null(glm_formula_Y_W)){
+  if(is.null(glm_formula_Y0W)){
     # If no formula use HAL and respect model constraints.
-    fit_control$weights <- weights
-    fit_Y <- fit_hal(X = as.matrix(W), X_unpenalized = as.matrix(A*V), Y = as.vector(Y), family = "binomial", fit_control = fit_control, smoothness_orders = smoothness_order_Y0W, max_degree = max_degree_Y0W, num_knots = num_knots_Y0W, ...)
-    Q <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(A*V))
-    Q0 <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(0*V))
-    Q1 <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(1*V))
+    data <-  data.frame(W,Y)
+    data$weights <- weights
+
+    task_Y0W <- sl3_Task$new(data, covariates = colnames(W), outcome = "Y", weights = "weights" )
+    sl3_learner_Y0W <- sl3_learner_Y0W$train(task_Y0W[keep & A==0])
+    Q0 <- sl3_learner_Y0W$predict(task_Y0W)
+
   } else {
     # Use glm if formula supplied
-    W_np <- model.matrix(glm_formula_Y_W, data = as.data.frame(W))
-    X <- cbind(W_np, A*V)
-    X1 <- cbind(W_np, 1*V)
-    X0 <- cbind(W_np, 0*V)
-    fit_Y <- glm.fit(X,Y, weights = weights, family = binomial(), intercept = F)
+    X <- model.matrix(glm_formula_Y0W, data = as.data.frame(W))
+
+    fit_Y <- glm.fit(X,Y, weights = weights*keep*(A==0), family = binomial(), intercept = F)
     cfs <- coef(fit_Y)
-    Q <- as.vector(plogis(X%*%cfs))
-    Q1 <- as.vector(plogis(X1%*%cfs))
-    Q0 <- as.vector(plogis(X0%*%cfs))
+    Q0 <- as.vector(plogis(X%*%cfs))
   }
 
+  ################################################################################################
+  #### Learn nonparametric odds ratio   #########################
+  ################################################################################################
+  if(is.null(sl3_learner_OR)) {
+    sl3_learner_OR <- sl3_learner_default
+  }
+  if(is.null(glm_formula_OR)){
+    # If no formula use HAL and respect model constraints.
+    data <-  data.frame(W)
+    covariates <- colnames(data)
+    data$Y <- Y
+    data$weights <- weights
+    data$offset <- Q0
+
+    task_Y1W <- sl3_Task$new(data, covariates = covariates, outcome = "Y" , weights = "weights", offset = "offset", outcome_type = "binomial")
+    sl3_learner_OR <- sl3_learner_OR$train(task_Y1W[keep & A==1])
+    Q1 <- sl3_learner_OR$predict(task_Y0W)
+
+  } else {
+    # Use glm if formula supplied
+    X <- model.matrix(glm_formula_OR, data = as.data.frame(W))
+
+    fit_Y <- glm.fit(X,Y, weights = weights*keep*(A==1), offset = qlogis(Q0), family = binomial(), intercept = F)
+    cfs <- coef(fit_Y)
+    Q1 <- as.vector(plogis(qlogis(Q0) + X%*%cfs))
+  }
+
+  Q <- ifelse(A==1, Q1, Q0)
+
+  ################################################################################################
+  #### Learn working-model odds ratio   #########################
+  ################################################################################################
+  fit_Y <- suppressWarnings(glm.fit(A*V,Q, offset = qlogis(Q0), weights = weights,family = binomial(), intercept = F))
+  beta <- coef(fit_Y)
+  logORbeta <- V%*%beta
+  Q1beta <- as.vector(plogis(qlogis(Q0) + logORbeta ))
   ################################
   #### Learn P(A=1|X) ############
   ################################
   # Default sl3 learner
-  if(is.null(sl3_learner_A)){
-    sl3_learner_A <- Lrnr_hal9001$new(smoothness_orders = smoothness_order_Y0W, max_degree = max_degree_Y0W, num_knots = num_knots_Y0W,   reduce_basis = reduce_basis, ...)
-  }
   # If no glm formula then use sl3 learner.
+  if(is.null(sl3_learner_A)) {
+    sl3_learner_A <- sl3_learner_default
+  }
   if(is.null(glm_formula_A)) {
 
     data_A <- data.frame(W, A)
@@ -93,61 +127,119 @@ npOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new
     W_g <- model.matrix(glm_formula_A, data = as.data.frame(W))
     fit_A <- glm.fit(W_g,A, weights = weights, family = binomial(), intercept = F)
     cfs <- coef(fit_A)
-    g1 <- as.vector(plogis(W_g%*%cfs))
+    g1 <- as.vector(as.vector(plogis(W_g%*%cfs)))
   }
+  g0 <- 1-g1
+
+  ################################
+  #### Learn P(Delta=1|A,X) ############
+  ################################
+  if(is.null(sl3_learner_Delta)) {
+    sl3_learner_Delta <- sl3_learner_default
+  }
+  if(is.null(glm_formula_Delta)) {
+
+    data_Delta <- data.frame(W, A)
+    covariates_Delta  <- c(paste0("W", 1:ncol(W)), "A")
+    colnames(data_Delta ) <- covariates_Delta
+    data_Delta$Delta <- Delta
+    data_Delta$weights <- weights
+    task_Delta <- sl3_Task$new(data_Delta, covariates = covariates_Delta, outcome = "Delta", outcome_type = "binomial", weights = "weights" )
+    fit_Delta <- sl3_learner_Delta$train(task_Delta)
+    G <- fit_Delta$predict(task_Delta)
+
+    G <- pmax(G, 0.005)
+  } else {
+    # use glm is formula supplied
+    W_np <- model.matrix(glm_formula_Delta, data = as.data.frame(cbind(W)))
+    X <- cbind(W_np, A*W_np)
+    X1 <- cbind(W_np, 1*W_np)
+    X0 <- cbind(W_np, 0*W_np)
+    fit_Delta<- glm.fit(X,Delta, weights = weights, family = binomial(), intercept = F)
+    cfs <- coef(fit_Delta)
+    G <- as.vector(plogis(X%*%cfs))
+    G <- pmax(G, 0.005)
+  }
+
   ################################
   ##### Targeting Step ###########
   ################################
+
+
+
   converged_flag <- FALSE
   for(i in 1:50) {
+    sigma02 <- as.vector(Q0*(1-Q0))
+    sigma1beta2 <- as.vector(Q1beta*(1-Q1beta))
+    omega <- as.vector((g0*sigma02 + g1*sigma1beta2)/(g0*sigma02))
 
-    h_star <- V* as.vector(-(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
+    h_star <- V* as.vector(-(g1*sigma1beta2) / (g1*sigma1beta2 + (1-g1)*sigma02))
     H_star <- (A*V + h_star)
     H_star1 <- (V + h_star)
     H_star0 <-  h_star
     offset <- qlogis(Q)
-    scale <- apply(V,2, function(v){colMeans_safe(weights*as.vector(Delta * Q1*(1-Q1) * Q0*(1-Q0) * g1 * (1-g1) / (g1 * Q1*(1-Q1) + (1-g1) *Q0*(1-Q0) )) * v*V)})
-    # scale2 <- apply(V,2,function(v) {
-    #   colMeans_safe(weights*(-V* v*( -1*g1*(Q1*(1-Q1)^2 - Q1^2*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0) )  -
-    #                                    (-1*g1*Q1*(1-Q1)*(Q1*(1-Q1)^2 - Q1^2*(1-Q1))) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0) )^2
-    #   )*(Y-Q)  + (A*V - V*(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))*A*v*Q*(1-Q)))
-    # })
-    # print(quantile(as.vector(abs(scale2 - scale))))
-    # print(quantile(as.vector(abs(t(scale) - scale))))
+    scale <- apply(V,2, function(v){colMeans_safe(weights*(g1 * sigma1beta2 * v*V))})
     scale_inv <- solve(scale)
-    var_unscaled <- as.matrix(var(weights*H_star*(Y-Q)))
-    var_scaled <-  scale_inv %*% var_unscaled  %*%  t(scale_inv)
-    score <- sum(abs(colMeans_safe(weights*H_star%*%scale_inv*as.vector(Y-Q)) ))
+
+
+
+    EIFY <- weights*(Delta/G)*omega* (H_star %*% scale_inv) * (Y - Q)
+    var_scaled <- as.matrix(var(EIFY))
+
+    score <- sum(abs(colMeans_safe(EIFY) ))
+    print("score")
+    print(as.vector(score))
 
     if(abs(score) <= min(0.5,mean(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
       converged_flag <- TRUE
+      print("converged")
       break
     }
-    eps <- coef(glm(Y~X-1, family = binomial(), weights = weights, offset = offset, data = list(Y = Y, X = H_star)))
+    offset <- qlogis(Q)
+    eps <- coef(glm(Y~X-1, family = binomial(), weights = weights*(Delta/G)*omega, offset = offset, data = list(Y = Y, X = H_star)))
     Q <- as.vector(plogis(offset +  H_star %*% eps))
     Q0 <- as.vector(plogis(qlogis(Q0) +  H_star0 %*% eps ))
     Q1 <- as.vector(plogis(qlogis(Q1) +  H_star1 %*% eps))
+
+    ################################################################################################
+    #### Learn working-model odds ratio   #########################
+    ################################################################################################
+    fit_Y <- suppressWarnings(glm.fit(A*V,Q, offset = qlogis(Q0), weights = weights,family = binomial(), intercept = F))
+    beta <- coef(fit_Y)
+    logORbeta <- V%*%beta
+    Q1beta <- as.vector(plogis(qlogis(Q0) + logORbeta ))
+
   }
 
-  h_star <- V* -(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0))
-  H_star <- weights*(A*V + h_star)
-  # Cheap way of extracting coefficients.
-  logOR <- log((Q1*(1-Q0)/((1-Q1)*(Q0))))
+  sigma02 <- Q0*(1-Q0)
+  sigma1beta2 <- Q1beta*(1-Q1beta)
+  omega <- (g0*sigma02 + g1*sigma1beta2)/(g0*sigma02)
 
-  estimates <- as.vector(coef(glm(logOR~V-1, family = gaussian(), data = list(V=V, logOR = logOR ))))
-
-
-
-
-  # scale <- apply(V,2,function(v) {
-  #   colMeans_safe(weights*(-V* v*( -1*g1*(Q1*(1-Q1)^2 - Q1^2*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0) )  -
-  #                                    (-1*g1*Q1*(1-Q1)*(Q1*(1-Q1)^2 - Q1^2*(1-Q1))) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0) )^2
-  #   )*(Y-Q)  + (A*V - V*(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))*A*v*Q*(1-Q)))
-  # })
-  scale <- apply(V,2, function(v){colMeans_safe(weights*as.vector(Delta * Q1*(1-Q1) * Q0*(1-Q0) * g1 * (1-g1) / (g1 * Q1*(1-Q1) + (1-g1) *Q0*(1-Q0) )) * v*V)})
+  h_star <- V* as.vector(-(g1*sigma1beta2) / (g1*sigma1beta2 + (1-g1)*sigma02))
+  H_star <- (A*V + h_star)
+  H_star1 <- (V + h_star)
+  H_star0 <-  h_star
+  offset <- qlogis(Q)
+  scale <- apply(V,2, function(v){colMeans_safe(weights* (g1 * sigma1beta2 * v*V))})
   scale_inv <- solve(scale)
-  var_unscaled <- as.matrix(var(weights*H_star*(Y-Q)))
-  var_scaled <-  scale_inv %*% var_unscaled  %*%  t(scale_inv)
+  EIFY <- weights*(Delta/G)*omega* (H_star%*%scale_inv) * (Y - Q)
+
+
+
+  EIFWA <- apply(V, 2, function(v) {
+    (weights*(A*v*(Q1 - Q1beta)) - mean( weights*(A*v*(Q1 - Q1beta))))
+  }) %*% scale_inv
+
+  EIF <- EIFY + EIFWA
+
+  var_scaled <- var(EIF)
+
+
+  fit_Y <- suppressWarnings(glm.fit(A*V,Q, offset = qlogis(Q0), weights = weights,family = binomial(), intercept = F))
+  estimates <- coef(fit_Y)
+  logORbeta <- V%*%estimates
+
+
 
 
   compute_predictions <- function(W_newer) {

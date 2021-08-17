@@ -1,9 +1,14 @@
 
-#' Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness.
+#' Semiparametric Targeted inference for the conditional odds ratio with post-treatment informed outcome missingness.
+#'
+#' Semiparametric Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness.
 #' This version also allows for the outcome is missing-at-random conditional on Z,A,W where Z comes after A.
 #' The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.
+#' Thus, only a correct parametric model is assumed for the conditional odds ratio, and all other nuisance functions are unspecified (nonparametric).
 #'
-#' @param formula An R formula object describing the functional form of the conditional log odds ratio as a fnction of `W`.
+#' NOTE: For more robust nonparametrically correct inference with no parametric assumptions, use the function \link[npORMissing] instead. In the \link[npORMissing] function, the user-specified parametric model is instead treated as an approximation rather than the truth.
+#'
+#' @param formula An R formula object describing the functional form of the conditional log odds ratio as a function of `W`.
 #' This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.
 #' @param W A named matrix of baseline covariates
 #' @param A A binary vector with values in (0,1) encoding the treatment assignment
@@ -29,7 +34,13 @@
 #' @param ... Other arguments to be passed to \link{hal9001::fit_hal} for fitting.
 #'
 #' @export
-npORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta= NULL, sl3_learner_Delta = NULL,  glm_formula_YZ = NULL, sl3_learner_YZ = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), ... ) {
+spORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta= NULL, sl3_learner_Delta = NULL,  glm_formula_YZ = NULL, sl3_learner_YZ = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(),parallel = F,ncores = NULL, ... ) {
+
+  if(parallel) {
+    doMC::registerDoMC(ncores)
+    fit_control$parallel <- TRUE
+  }
+
   glm_formula_Y_W <- glm_formula_Y0W
   W <- as.matrix(W)
   Z <- as.matrix(Z)
@@ -139,7 +150,7 @@ npORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_
     fit_Delta <- sl3_learner_Delta$train(task_Delta)
     G <- fit_Delta$predict(task_Delta)
     print(range(G))
-    G <- bound(G, 0.005)
+    G <- pmax(G, 0.005)
   } else {
     # use glm is formula supplied
     W_np <- model.matrix(glm_formula_Delta, data = as.data.frame(cbind(W,Z)))
@@ -149,7 +160,7 @@ npORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_
     fit_Delta<- glm.fit(X,Delta, weights = weights, family = binomial(), intercept = F)
     cfs <- coef(fit_Delta)
     G <- as.vector(plogis(X%*%cfs))
-    G <- pmin(G, 0.005)
+    G <- pmax(G, 0.005)
   }
   if(is.null(glm_formula_A)) {
 
@@ -159,13 +170,13 @@ npORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_
     data_A$weights <- weights
     task_A <- sl3_Task$new(data_A, covariates = covariates_A, outcome = "A", outcome_type = "binomial", weights = "weights" )
     fit_A <- sl3_learner_A$train(task_A)
-    g1 <- fit_A$predict(task_A)
+    g1 <- bound(fit_A$predict(task_A),0.0001)
   } else {
     # use glm is formula supplied
     W_g <- model.matrix(glm_formula_A, data = as.data.frame(W))
     fit_A <- glm.fit(W_g,A, weights = weights, family = binomial(), intercept = F)
     cfs <- coef(fit_A)
-    g1 <- as.vector(plogis(W_g%*%cfs))
+    g1 <- bound(as.vector(plogis(W_g%*%cfs)),0.0001)
   }
 
 

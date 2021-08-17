@@ -7,3 +7,6 @@ colMeans_safe <- function(X) {
   }
   return(colMeans(X))
 }
+bound <- function(x, b){
+  pmax(pmin(x,1-b),b)
+}
