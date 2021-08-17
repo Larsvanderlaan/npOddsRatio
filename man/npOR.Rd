@@ -51,6 +51,9 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 \item{glm_formula_Delta}{(Not recommended). An optional R formula object describing the functional form of P(Delta=1|A,W) to fit with glm. If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 
 \item{sl3_learner_Delta}{An optional \code{tlverse/sl3} learner object used to estimate P(Delta=1|A,W).}
+
+\item{sl3_learner_default}{A default sl3 Learner to be used if neither a glm formula or sl3 learner is provided for one of the nuisance functions.
+By default, Lrnr_hal9001 is used.}
 }
 \description{
 Nonparametric Targeted estimates and inference for the conditional odds ratio with a user-specified parametric working-model with informative outcome missingness due to `A` and `W`.

@@ -27,8 +27,10 @@
 #' @param reduce_basis See analagous argument in package \link{hal9001}.
 #' @param fit_control See analagous argument in package \link{hal9001}.
 #' @param ... Other arguments to be passed to \link{hal9001::fit_hal} for fitting.
+#' @param sl3_learner_default A default sl3 Learner to be used if neither a glm formula or sl3 learner is provided for one of the nuisance functions.
+#' By default, Lrnr_hal9001 is used.
 #' @export
-spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Y_W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), parallel = F,ncores = NULL, ... ) {
+spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Y_W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)), parallel = F,ncores = NULL,  ... ) {
   if(parallel) {
     doMC::registerDoMC(ncores)
     fit_control$parallel <- TRUE

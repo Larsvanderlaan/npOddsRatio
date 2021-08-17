@@ -48,7 +48,11 @@ This variable can be NULL if the missingness is only effected by `A` and `W`.}
 
 \item{glm_formula_Y0W}{(Not recommended). An optional R formula object describing the nuisance function `logit(P(Y=1|A=0,W))`.}
 
+\item{sl3_learner_Y0W}{An optional \code{tlverse/sl3} learner object used to estimate the nuisance (A=0) conditional outcome mean P(Y=1|A=0,W).}
+
 \item{glm_formula_OR}{(Not recommended). An optional R formula object describing the conditional odds ratio.}
+
+\item{sl3_learner_OR}{An optional \code{tlverse/sl3} learner object used to estimate the true/nonparametric conditional odds ratio}
 
 \item{glm_formula_A}{(Not recommended). An optional R formula object describing the functional form of P(A=1|W). If provided, \code{glm} is used for the fitting. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 
@@ -58,6 +62,9 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 \item{glm_formula_Delta}{(Not recommended). An optional R formula object describing the functional form of P(Delta=1|A,W) to fit with glm. If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 
 \item{sl3_learner_Delta}{An optional \code{tlverse/sl3} learner object used to estimate P(Delta=1|A,W).}
+
+\item{sl3_learner_default}{A default sl3 Learner to be used if neither a glm formula or sl3 learner is provided for one of the nuisance functions.
+By default, Lrnr_hal9001 is used.}
 
 \item{glm_formula_YZ}{A(Not recommended). An optional R formula object describing the functional form of the full conditional outcome mean P(Y=1|Z,A,W). If provided, it is estimated using glm. (Not recommended. This method allows for and works best with flexible machine-learning algorithms.)}
 

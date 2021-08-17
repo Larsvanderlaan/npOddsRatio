@@ -20,6 +20,8 @@ spOR(
   num_knots_Y0W = c(20, 5),
   reduce_basis = 0.001,
   fit_control = list(),
+  sl3_learner_default = Lrnr_hal9001_custom$new(max_degree = 2, smoothness_orders = 1,
+    num_knots = c(30, 10)),
   parallel = F,
   ncores = NULL,
   ...
@@ -55,6 +57,9 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 \item{reduce_basis}{See analagous argument in package \link{hal9001}.}
 
 \item{fit_control}{See analagous argument in package \link{hal9001}.}
+
+\item{sl3_learner_default}{A default sl3 Learner to be used if neither a glm formula or sl3 learner is provided for one of the nuisance functions.
+By default, Lrnr_hal9001 is used.}
 
 \item{...}{Other arguments to be passed to \link{hal9001::fit_hal} for fitting.}
 
