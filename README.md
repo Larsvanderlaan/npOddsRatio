@@ -1,7 +1,8 @@
 # npOddsRatio
 Semiparametric and Nonparametric Targeted Maximum-Likelihood estimation of the conditional odds ratio with post-and-pre-treatment informative outcome missingness. 
 
-## Key words: Causal Inference, Missing Data, Partially linear logistic regression, semiparametric, nonparametric, TMLE, machine-learning, Targeted-learning, working-model, Highly Adaptive Lasso
+## Key words: 
+Causal Inference, Missing Data, Partially linear logistic regression, semiparametric, nonparametric, TMLE, machine-learning, Targeted-learning, working-model, Highly Adaptive Lasso
 
 
 ## Method implemented
