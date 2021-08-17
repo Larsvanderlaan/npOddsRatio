@@ -1,25 +1,25 @@
 {
     "collab_server" : "",
     "contents" : "",
-    "created" : 1628552889935.000,
+    "created" : 1629164690556.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
     "hash" : "0",
-    "id" : "89D5CF30",
-    "lastKnownWriteTime" : 1629164835,
-    "last_content_update" : 1629164835,
-    "path" : "~/npOddsRatio/NAMESPACE",
-    "project_path" : "NAMESPACE",
+    "id" : "A4F0E992",
+    "lastKnownWriteTime" : 1629164770,
+    "last_content_update" : 1629164770,
+    "path" : "~/npOddsRatio/DESCRIPTION",
+    "project_path" : "DESCRIPTION",
     "properties" : {
-        "cursorPosition" : "0,0",
+        "cursorPosition" : "14,6",
         "scrollLine" : "0"
     },
     "read_only" : false,
     "read_only_alternatives" : [
     ],
-    "relative_order" : 4,
+    "relative_order" : 7,
     "source_on_save" : false,
     "source_window" : "",
-    "type" : "r_namespace"
+    "type" : "dcf"
 }

@@ -1,19 +1,22 @@
 Package: npOddsRatio
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Semiparametric Targeted Maximum-Likelihood estimation of the conditional odds ratio in a partially-linear logistic-link regression model with post-treatment informative missingness.
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Lars van der Laan
+Maintainer: Lars van der Laan <vanderlaanlars@yahoo.com>
+Description: Utilizing the framework of Targeted Maximum-Likelihood estimation (TMLE), efficient estimates and inference is given for the conditional odds ratio in a partially-linear logistic-link regression model with post-treatment informative missingness.
+    The user can supply an arbitrary parametric form of the conditional log odds ratio. Estimates and confidence intervals are returned. 
+    Nuisance functions can be estimated using machine-learning (specifically the machine-learning pipeline R package sl3) ,thereby avoiding biases due to model misspecification.
+    This package allows for the outcome missingness to informed by pre-treatment variables W and the treatment (See function npOR), or through pre-treatment variables, treatment, and post-treatment variables (see function npORMissing).
+   
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Imports: 
   sl3,
-  SuperLearner,
-  tmle3,
+  hal9001,
   stats,
   data.table,
   R6
 RoxygenNote: 7.1.1
+Remotes: github::tlverse/hal9001@Larsvanderlaan-patch-quantizer, github::tlverse/sl3@devel

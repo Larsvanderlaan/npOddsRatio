@@ -1,5 +1,8 @@
 
-
+#' Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness.
+#' This version also allows for the outcome is missing-at-random conditional on Z,A,W where Z comes after A.
+#' The partially-linear logistic model assumes that `logit(P(Y=1|A,W)) = b* A f(W) + h(W)` where `h(W) = logit(P(Y=1|A=0,W))` is unspecified (nonparametric) and `f(W)` is specified by a parametric model.
+#'
 #' @param formula An R formula object describing the functional form of the conditional log odds ratio as a fnction of `W`.
 #' This corresponds with `f(W)` in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`.
 #' @param W A named matrix of baseline covariates
@@ -24,6 +27,8 @@
 #' @param reduce_basis See analagous argument in package \link{hal9001}.
 #' @param fit_control See analagous argument in package \link{hal9001}.
 #' @param ... Other arguments to be passed to \link{hal9001::fit_hal} for fitting.
+#'
+#' @export
 npORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta= NULL, sl3_learner_Delta = NULL,  glm_formula_YZ = NULL, sl3_learner_YZ = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), ... ) {
   glm_formula_Y_W <- glm_formula_Y0W
   W <- as.matrix(W)

@@ -1,4 +1,9 @@
-
+#'
+#' @importFrom R6 R6Class
+#' @importFrom origami folds2foldvec
+#' @importFrom stats predict quasibinomial
+#'
+#' @export
 library(R6)
 Lrnr_hal9001_custom <- R6Class(
   classname = "Lrnr_hal9001_custom", inherit = Lrnr_base,

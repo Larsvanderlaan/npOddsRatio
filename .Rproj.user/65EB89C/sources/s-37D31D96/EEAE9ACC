@@ -1,25 +1,25 @@
 {
     "collab_server" : "",
     "contents" : "",
-    "created" : 1628552891850.000,
+    "created" : 1629164785212.000,
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
     "hash" : "0",
-    "id" : "641EEEC7",
-    "lastKnownWriteTime" : 1628552939,
-    "last_content_update" : 1628552939696,
-    "path" : "~/npOddsRatio/DESCRIPTION",
-    "project_path" : "DESCRIPTION",
+    "id" : "EEAE9ACC",
+    "lastKnownWriteTime" : 1629164777,
+    "last_content_update" : 1629164777,
+    "path" : "~/npOddsRatio/LICENSE",
+    "project_path" : "LICENSE",
     "properties" : {
-        "cursorPosition" : "8,34",
+        "cursorPosition" : "1,37",
         "scrollLine" : "0"
     },
     "read_only" : false,
     "read_only_alternatives" : [
     ],
-    "relative_order" : 5,
+    "relative_order" : 8,
     "source_on_save" : false,
     "source_window" : "",
-    "type" : "dcf"
+    "type" : "text"
 }
