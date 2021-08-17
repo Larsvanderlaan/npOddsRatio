@@ -5,7 +5,7 @@ Utilizing the framework of Targeted Maximum-Likelihood estimation (TMLE), effici
 The user can supply an arbitrary parametric form of the conditional log odds ratio. Estimates and confidence intervals are returned. 
 Nuisance functions can be estimated using machine-learning (specifically the machine-learning pipeline R package tlverse/sl3), thereby avoiding biases due to model misspecification.
 This package allows for the outcome missingness to informed by pre-treatment variables W and the treatment (See function npOR), or through pre-treatment variables, treatment, and post-treatment variables (see function npORMissing).
-To estimate the nuisance functions, for convenience, we allow the user to specify either an sl3 Learner object or a R formula object in which case the nuisance functions are parametrically estimated using glm (not recommended). By default, tlverse/hal9001 is used to estimate all nuisances.
+To estimate the nuisance functions, for convenience, we allow the user to specify either a tlverse/sl3 Learner object, or an R formula object in which case the nuisance functions are parametrically estimated using glm (not recommended). By default, tlverse/hal9001 is used to estimate all nuisances. Note, to turn a given sl3 Learner "lrnr" into a cross-fitted Learner "lrnr_crossfit", do "lrnr_crossfit <- Lrnr_cv$new(lrnr)".
 
 Consider the data-structure $(W,A,Y)$ where $W$ is a vector of pre-treatment baseline covariates, $A$ is a binary treatment assignment, and $Y$ is a binary outcome.
 We assume the partially-linear logistic-link model
