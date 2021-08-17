@@ -16,6 +16,13 @@ Imports:
   hal9001,
   stats,
   data.table,
+  R6,
+  doMC
+Depends:
+  sl3,
+  hal9001,
+  stats,
+  data.table,
   R6
 RoxygenNote: 7.1.1
 Remotes: github::tlverse/hal9001@Larsvanderlaan-patch-quantizer, github::tlverse/sl3@devel

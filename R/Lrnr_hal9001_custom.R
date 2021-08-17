@@ -2,9 +2,11 @@
 #' @importFrom R6 R6Class
 #' @importFrom origami folds2foldvec
 #' @importFrom stats predict quasibinomial
-#'
+#' @importFrom sl3 Lrnr_base
+#' @import data.table
+#' @import hal9001
+#' @import glmnet
 #' @export
-library(R6)
 Lrnr_hal9001_custom <- R6Class(
   classname = "Lrnr_hal9001_custom", inherit = Lrnr_base,
   portable = TRUE, class = TRUE,
@@ -21,7 +23,7 @@ Lrnr_hal9001_custom <- R6Class(
                           formula_hal = NULL,
                           fit_control = list(),
                           ...) {
-      params <- args_to_list()
+      params <- sl3:::args_to_list()
       super$initialize(params = params, ...)
     }
   ),

@@ -101,7 +101,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
     # Use glm if formula supplied
     X <- model.matrix(glm_formula_Y0W, data = as.data.frame(W))
 
-    fit_Y <- glm.fit(X,Qbar, weights = weights*(A==0), family = binomial(), intercept = F)
+    fit_Y <- suppressWarnings(glm.fit(X,Qbar, weights = weights*(A==0), family = binomial(), intercept = F))
     cfs <- coef(fit_Y)
     Q0 <- as.vector(plogis(X%*%cfs))
   }
@@ -238,7 +238,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
         break
       }
       offset <- qlogis(Q)
-      eps <- coef(glm(Y~X-1, family = binomial(), weights = weights*omega, offset = offset, data = list(Y = Qbar, X = H_star)))
+      eps <- suppressWarnings(coef(glm(Y~X-1, family = binomial(), weights = weights*omega, offset = offset, data = list(Y = Qbar, X = H_star))))
       Q <- as.vector(plogis(offset +  H_star %*% eps))
       Q0 <- as.vector(plogis(qlogis(Q0) +  H_star0 %*% eps ))
       Q1 <- as.vector(plogis(qlogis(Q1) +  H_star1 %*% eps))
@@ -265,7 +265,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
     scale <- apply(V,2, function(v){colMeans_safe(weights*(g1 * sigma1beta2 * v*V))})
     scale_inv <- solve(scale)
     offset <- qlogis(Qbar)
-    eps <- coef(glm(Y~X-1, family = binomial(), weights = weights*Delta*omega/G, offset = offset, data = list(Y = Y, X = H_star)))
+    eps <- suppressWarnings(coef(glm(Y~X-1, family = binomial(), weights = weights*Delta*omega/G, offset = offset, data = list(Y = Y, X = H_star))))
     Qbar <- as.vector(plogis(offset +  H_star %*% eps))
 
 
