@@ -105,7 +105,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
     cfs <- coef(fit_Y)
     Q0 <- as.vector(plogis(X%*%cfs))
   }
- print("OUT")
+
 
   ################################################################################################
   #### Learn nonparametric odds ratio   #########################
@@ -230,8 +230,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
       var_scaled <- as.matrix(var(EIFZ))
 
       score <- sum(abs(colMeans_safe(EIFZ) ))
-      print("score")
-      print(as.vector(score))
+
 
       if(abs(score) <= min(0.5,mean(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
 
@@ -275,8 +274,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
     EIF <- EIFY + EIFZ
     var_scaled <- as.matrix(var(EIF))
     score <- sum(abs(colMeans_safe(EIF) ))
-    print("score final")
-    print(as.vector(score))
+
     if(abs(score) <= min(0.5,mean(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
       print("converged final")
       break
@@ -306,7 +304,7 @@ npORMissing  <- function(working_formula = logOR~1, W, A, Y, Z, Delta, weights =
   }) %*% scale_inv
 
   EIF <- EIFY + EIFZ + EIFWA
-  print(mean(EIF))
+
   var_scaled <- var(EIF)
   ##### Get working odds ratio
   fit_Y <- suppressWarnings(glm.fit(A*V,Q, offset = qlogis(Q0), weights = weights,family = binomial(), intercept = F))
