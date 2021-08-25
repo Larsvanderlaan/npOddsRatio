@@ -39,7 +39,7 @@ We make no assumptions on the functional form of the conditional odds ratio.
 "npORMissing" is a more general nonparametric version of "npOR" that should be used if there are post-treatment variables Z that inform both the outcome and outcome missingness. This is the nonparametric version of "spORMissing". Like "npOR", the parametric model is only used an approximation, so correct estimates and inference are obtainable without assuming the parametric model is correct. Thus, this method is truly nonparametric. This function can handle the same type of missingness that "spORMissing" can.
 
 
-Each function allows the user to supply an arbitrary parametric form/working-model for the conditional log odds ratio. Estimates and 95% confidence intervals are returned. 
+Each function allows the user to supply an arbitrary parametric form/working-model for the conditional log odds ratio. A fit object containing coefficient estimates, 95% confidence intervals, and p-values are returned. It is also possible to evaluate the log conditional odds ratio for new user-given observations using the "predict" function on the returned object. Pointwise 95% confidence intervals are given for each evaluated log OR value.
 
 ## Machine-learning and Targeted learning of the OddsRatio
 
