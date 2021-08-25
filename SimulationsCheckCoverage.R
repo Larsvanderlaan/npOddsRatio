@@ -72,7 +72,7 @@ for(i in 1:k){
   lrnr <- Lrnr_hal9001_custom$new(max_degree = 2, num_knots = c(10,1))
 
 
-  fit <- npORMissing(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y ,
+  fit <- npOR(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y ,
                      Delta = data$Delta, sl3_learner_default = lrnr )
   ci <- fit$coefs
 
@@ -90,7 +90,7 @@ for(i in 1:k){
 
 
 
-
+k <- 1000
 passes1 <- c()
 passes2 <- c()
 for(i in 1:k){
@@ -117,8 +117,8 @@ for(i in 1:k){
   registerDoMC(8)
   #fit <- npOR(~1 + W1^2 + W2^2, W = data[,c("W1", "W2")], A = data$A, Y = data$Y, glm_formula_A = ~ .^2, glm_formula_Y = ~ .^2  )
   #### INCORRECT as does not adjust for Z
-  fit <- spORmissing(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y , Z =  rbinom(n,size=1,prob=0.5),
-                     Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3, sl3_learner_Delta = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)), sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
+  fit <- spOR(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y ,
+                     Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3,   sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
   ci <- fit$coefs
 
   passes1 <- cbind(passes1, ci[,3] <= true & ci[,4] >= true)
@@ -139,25 +139,25 @@ for(i in 1:k){
 
 
 
-##### TEST COVERAGE FOR spORMissing
+##### TEST COVERAGE FOR spOR
 
 
 
 
 
-passes1 <- c()
-passes2 <- c()
+passes <- c()
+
 for(i in 1:k){
-  n <- 3500
+  n <- 2500
   D <- DAG.empty()
-  D <- DAG.empty()
+
   D <- D +
     node("W1", distr = "runif", min = -1, max = 1) +
     node("W2", distr = "runif", min = -1, max = 1) +
     node("A", distr = "rbinom", size = 1, prob = plogis(W1 + W2) )+
     node("Q", distr = "rconst", const = plogis(-1+A + A*(W1  ) + W1 + W2))+
     node("Y", distr = "rbinom", size = 1, prob = Q) +
-    node("G", distr = "rconst",const = 1- 0.3*plogis(W1 + W2  +A-0.5 ))+
+    node("G", distr = "rconst",const = 1- 0.1*plogis(W1 + W2  +A-0.5 ))+
     node("Delta", distr = "rbinom", size = 1, prob = G)
 
   setD <- set.DAG(D )
@@ -168,21 +168,48 @@ for(i in 1:k){
   registerDoMC(8)
   #fit <- npOR(~1 + W1^2 + W2^2, W = data[,c("W1", "W2")], A = data$A, Y = data$Y, glm_formula_A = ~ .^2, glm_formula_Y = ~ .^2  )
   #### INCORRECT as does not adjust for Z
-  fit <- spORmissing(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y , Z =  rbinom(n,size=1,prob=0.5),
-                     Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3, sl3_learner_Delta = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)), sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
+  fit <- spOR(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y ,
+                     Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
+
   ci <- fit$coefs
 
-  passes1 <- cbind(passes1, ci[,3] <= true & ci[,4] >= true)
-  #### CORRECT as does not adjust for Z
-  fit <- spORmissing(~ poly(W1,degree=1, raw = T)   , W = data[,c("W1", "W2")], A = data$A, Y = data$Y , Z =  data$Z,
-                     Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3, sl3_learner_Delta = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)), sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
-  ci <- fit$coefs
-
-  passes2 <- cbind(passes2, ci[,3] <= true & ci[,4] >= true)
+  passes <- cbind(passes, ci[,3] <= true & ci[,4] >= true)
 
   # COMPARE
-  print(rowMeans(passes1))
-  print(rowMeans(passes2))
-  print(apply(passes1,1,table))
-  print(apply(passes2,1,table))
+  print(rowMeans(passes))
+
+  print(apply(passes,1,table))
+
 }
+
+
+
+
+n <- 2500
+D <- DAG.empty()
+
+D <- D +
+  node("W1", distr = "runif", min = -1, max = 1) +
+  node("W2", distr = "runif", min = -1, max = 1) +
+  node("A", distr = "rbinom", size = 1, prob = plogis(W1 + W2) )+
+  node("Q", distr = "rconst", const = plogis(-1+A + A*(W1  ) + W1 + W2))+
+  node("Y", distr = "rbinom", size = 1, prob = Q) +
+  node("G", distr = "rconst",const = 1- 0.1*plogis(W1 + W2  +A-0.5 ))+
+  node("Delta", distr = "rbinom", size = 1, prob = G)
+
+setD <- set.DAG(D )
+data <- sim(setD, n = n)
+data$Y <- data$Y * data$Delta
+true <- c(1, 1)
+library(doMC)
+registerDoMC(8)
+#fit <- npOR(~1 + W1^2 + W2^2, W = data[,c("W1", "W2")], A = data$A, Y = data$Y, glm_formula_A = ~ .^2, glm_formula_Y = ~ .^2  )
+#### INCORRECT as does not adjust for Z
+fit <- spOR(~ poly(W1, degree = 2, raw = T) + poly(W2, degree = 2, raw = T)    , W = data[,c("W1", "W2")], A = data$A, Y = data$Y ,
+            Delta = data$Delta, num_knots_Y0W = c(30,10,1), max_degree_Y0W = 3, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,1)),fit_control = list(parallel = T)  )
+
+ci <- fit$coefs
+
+summary(fit)
+
+

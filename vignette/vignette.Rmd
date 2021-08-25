@@ -1,0 +1,235 @@
+---
+title: "Vignette_npOddsRatio"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Generate data
+
+```{r}
+# devtools::install_github("Larsvanderlaan/npOddsRatio)
+library(npOddsRatio)
+n <- 1000
+# Baseline variables
+X1 <- runif(n, min = -1, max = 1)
+X2 <- runif(n, min = -1, max = 1)
+# Binary treatment
+A <- rbinom(n,size = 1, prob = plogis(X1 + X2) )
+# Binary outcome
+Y <- rbinom(n,size = 1, prob = plogis(-1+A + A*(X1 + X2) + X1 + X2 + X1*X2)) 
+# Binary missingness indicator
+Delta <- rbinom(n,size = 1, prob =1- 0.1*plogis(X1 + X2  +A-0.5 ))
+# construct data.frame
+data <- data.frame(X1,X2,A,Delta, Y = Delta*Y)
+print(head(data))
+ 
+
+```
+
+
+## Fit conditional odds ratio using sl3
+```{r}
+# devtools::install_github("tlverse/sl3)
+library(sl3)
+# useful learners
+lrnr_gam <-  Lrnr_gam$new()
+lrnr_glmnet <- Lrnr_glmnet$new()
+lrnr_hal <- Lrnr_hal9001$new(max_degree = 2, smoothness_orders =1, num_knots = c(5,3), fit_control = list(parallel = T))
+lrnr_xgboost <- Lrnr_xgboost$new(max_depth = 4)
+
+# Create a stack/ensemble learner
+stack <- make_learner(Stack, lrnr_gam, lrnr_glmnet,   lrnr_xgboost)
+# Create a superlearner
+lrnr_SL <- Lrnr_sl$new(stack)
+# Just use cross-validation selection
+lrnr_cv <- Lrnr_cv$new(stack)
+lrnr_cv <- make_learner(Pipeline, lrnr_cv, Lrnr_cv_selector$new(loss_loglik_binomial))
+######
+
+true_coefs <- c(1, 1,1)
+library(doMC)
+registerDoMC()
+
+# Specify formula for odds ratio
+logOR_formula <- ~ 1 + X1 + X2
+# Fit odds ratio
+fit_sp <- spOR(logOR_formula, 
+            W = data[,c("X1", "X2")],
+            A = data$A, 
+            Y = data$Y ,
+            Delta = data$Delta, 
+            # Specify HAL estimator for P(Y=1|A=0,W):
+            max_degree_Y0W = 2, # Generate only up to two-way interaction spline basis functions
+            num_knots_Y0W = c(10,5,0), # Specify number of knots used per covariate for each spline basis function of each interaction degree (deg = 1,2,3).
+            sl3_learner_A = lrnr_cv) # learner to estimate P(A=1|X,Delta=1)  
+
+
+# Or be totally nonparametric and get correct inference even when parametric model is incorrect and just an approximation
+fit_np <- npOR(logOR_formula, 
+            W = data[,c("X1", "X2")],
+            A = data$A, 
+            Y = data$Y ,
+            Delta = data$Delta, 
+            sl3_learner_OR = lrnr_hal, # Learner for true OR
+             sl3_learner_Y0W = lrnr_hal, # Learner for true P(Y=1|A=0,W) nuisance
+            sl3_learner_A = lrnr_cv, #Learner for P(A=1|W)
+            sl3_learner_Delta = lrnr_cv) #Learner for P(Delta=1|W,A)
+
+
+
+```
+
+
+## Get estimates and inference
+
+```{r}
+#### coefficients
+#print(coef(fit))
+#### Summarize coefficients
+print("semiparametric")
+print(summary(fit_sp))
+print("nonparametric")
+print(summary(fit_np))
+
+# Estimates are similar since semiparametric model is correct!
+# The nonparametric method has a larger uncertainty.
+```
+
+```{r}
+#### Get predictions and inference for log odds ratio at observations
+predict(fit_sp, data[1:10,c("X1", "X2")])
+
+
+
+```
+
+## Fit conditional odds ratio using glm
+
+```{r}
+ 
+
+# Specify formula for log odds ratio
+logOR_formula <- ~ 1 + X1 + X2
+# P(A=1|X, Delta = 1) glm formula
+glm_formula_A <- ~ 1 + X1 + X2 + X1*X2
+# P(Y=1|A=0,X, Delta = 1) glm formula
+glm_formula_Y0W <- ~ 1 + X1 + X2 + X1*X2
+# Fit odds ratio
+
+fit_glm <- spOR(logOR_formula, 
+            W = data[,c("X1", "X2")],
+            A = data$A, 
+            Y = data$Y ,
+            Delta = data$Delta, 
+            glm_formula_A = glm_formula_A,
+            glm_formula_Y0W = glm_formula_Y0W)
+
+```
+
+
+### Get estimates and inference
+
+```{r}
+#### coefficients
+#print(coef(fit))
+#### Summarize coefficients
+print(summary(fit_glm))
+
+
+#### Get predictions and inference for log odds ratio at observations
+predict(fit_glm, data[1:10,c("X1", "X2")])
+
+```
+
+
+## Simulation for coverage
+
+```{r}
+passes1 <- c()
+passes2 <- c()
+library(doMC)
+ 
+for(i in 1:1000){
+  print(i)
+n <- 5000
+X1 <- runif(n, min = -1, max = 1)
+X2 <- runif(n, min = -1, max = 1)
+A <- rbinom(n,size = 1, prob = plogis(X1 + X2) )
+Y <- rbinom(n,size = 1, prob = plogis(-1+A + A*(X1 + X2) + X1 + X2 + X1*X2)) 
+Delta <- rbinom(n,size = 1, prob =1- 0.3*plogis(X1 + X2    ))
+data <- data.frame(X1,X2,A,Delta, Y = Y, DeltaY = Delta*Y)
+
+ 
+
+true <- c(1, 1,1)
+ 
+
+fit <- spOR(~ 1 + X1 + X2    , W = data[,c("X1", "X2")], A = data$A, Y = data$DeltaY ,
+            Delta = data$Delta, num_knots_Y0W = c(5,3,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(5,2), fit_control = list(parallel = T)), parallel = T, ncores = 4  )
+
+ci <- fit$coefs
+passes1 <- cbind(passes1, ci[,4] <= true & ci[,5] >= true)
+ 
+print(rowMeans(passes1))
+
+
+fit <- spOR(~ 1 + X1 + X2    , W = data[,c("X1", "X2")], A = data$A, Y = data$Y ,
+            Delta = rep(1,n), num_knots_Y0W = c(5,3,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(5,2), fit_control = list(parallel = T)), parallel = T, ncores = 4  )
+
+ci <- fit$coefs
+passes2 <- cbind(passes2, ci[,4] <= true & ci[,5] >= true)
+ 
+print(rowMeans(passes2))
+
+
+}
+
+
+
+```
+
+```{r}
+passes <- c()
+
+for(i in 1:100){
+n <- 5000
+D <- DAG.empty()
+
+D <- D +
+  node("W1", distr = "runif", min = -1, max = 1) +
+  node("W2", distr = "runif", min = -1, max = 1) +
+  node("A", distr = "rbinom", size = 1, prob = plogis(W1 + W2) )+
+  node("T", distr = "rweibull", shape=2, scale = exp(1-A))+
+  node("R", distr = "rbinom", size = 1, prob =  plogis(2+W1 + W2 - A)) +
+  node("mu", distr = "rconst", const = plogis(-1+A + A*(W1 + W2  +T) + W1 + W2 + W1*W2))+
+  node("J", distr = "rbinom", size = 1, prob = mu) +
+  node("G", distr = "rconst",const = 1- 0.25*plogis(W1 + W2  +A-0.5 ))+
+  node("Delta", distr = "rbinom", size = 1, prob = G)+
+  node("Jobs", distr = "rconst",const = J * Delta*R) 
+
+setD <- set.DAG(D )
+data <- sim(setD, n = n)
+data <- data[data$R==1,]
+ 
+
+true <- c(1, 1,1,1)
+library(doMC)
+registerDoMC(8)
+
+fit <- spOR(~ 1 + W1 + W2 + T   , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs ,
+            Delta = data$Delta, num_knots_Y0W = c(10,5,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(5,1)),fit_control = list(parallel = T)  )
+
+ci <- fit$coefs
+passes <- cbind(passes, ci[,4] <= true & ci[,5] >= true)
+print(summary(fit))
+print(rowMeans(passes))
+
+
+}
+
+
+
+```

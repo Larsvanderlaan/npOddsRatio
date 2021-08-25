@@ -14,7 +14,7 @@ spOR(
   W_new = W,
   glm_formula_A = NULL,
   sl3_learner_A = NULL,
-  glm_formula_Y_W = NULL,
+  glm_formula_Y0W = NULL,
   smoothness_order_Y0W = 1,
   max_degree_Y0W = 2,
   num_knots_Y0W = c(20, 5),
@@ -48,6 +48,8 @@ This corresponds with `f(W)` in the partially linear logistic-link model `logit(
 \item{sl3_learner_A}{An optional \code{tlverse/sl3} learner object used to estimate P(A=1|W).
 If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a default learner is used (Lrnr_hal9001).}
 
+\item{glm_formula_Y0W}{(Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`}
+
 \item{smoothness_order_Y0W}{Smoothness order of the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)` to be estimated nonparametrically using the Highly Adaptive Lasso (\link{hal9001}), a powerful spline regression algorithm. 0 = discontinuous piece-wise constant function, 1 = continuous piece-wise linear, 2 = smooth piece-wise quadratic}
 
 \item{max_degree_Y0W}{Max degree of interaction (of spline basis functions) of the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)` to be estimated nonparametrically using the Highly Adaptive Lasso (\link{hal9001}). `max_degree=1` corresponds with an additive model, `max_degree=2` corresponds with a bi-additive (two-way) model. This parameter significantly affects computation time.}
@@ -62,8 +64,6 @@ If both \code{sl3_learner_A} and \code{glm_formula_A} are not provided, a defaul
 By default, Lrnr_hal9001 is used.}
 
 \item{...}{Other arguments to be passed to \link{hal9001::fit_hal} for fitting.}
-
-\item{glm_formula_Y0W}{(Not recommended). An optional R formula object describing the nuisance function `h(W) := logit(P(Y=1|A=0,W))`in the partially linear logistic-link model `logit(P(Y=1|A,W)) = b*Af(W) + h(W)`}
 }
 \description{
 Targeted estimates and inference for the odds ratio in a partially-linear logistic-link semiparametric model with `post-treatment`` informative outcome missingness..

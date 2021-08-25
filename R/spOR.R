@@ -31,7 +31,7 @@
 #' By default, Lrnr_hal9001 is used.
 #' @importFrom doMC registerDoMC
 #' @export
-spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Y_W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)), parallel = F,ncores = NULL,  ... ) {
+spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)), parallel = F,ncores = NULL,  ... ) {
   if(parallel) {
     doMC::registerDoMC(ncores)
     fit_control$parallel <- TRUE
@@ -63,7 +63,7 @@ spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new
   ################################################################################################
   #### Learn P(Y=1|A,X) under partially linear logistic model assumption #########################
   ################################################################################################
-  if(is.null(glm_formula_Y_W)){
+  if(is.null(glm_formula_Y0W)){
     # If no formula use HAL and respect model constraints.
     fit_control$weights <- weights
     fit_Y <- fit_hal(X = as.matrix(W), X_unpenalized = as.matrix(A*V), Y = as.vector(Y), family = "binomial", fit_control = fit_control, smoothness_orders = smoothness_order_Y0W, max_degree = max_degree_Y0W, num_knots = num_knots_Y0W, ...)
@@ -72,7 +72,7 @@ spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new
     Q1 <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(1*V))
   } else {
     # Use glm if formula supplied
-    W_np <- model.matrix(glm_formula_Y_W, data = as.data.frame(W))
+    W_np <- model.matrix(glm_formula_Y0W, data = as.data.frame(W))
     X <- cbind(W_np, A*V)
     X1 <- cbind(W_np, 1*V)
     X0 <- cbind(W_np, 0*V)
@@ -131,7 +131,7 @@ spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new
     var_scaled <-  scale_inv %*% var_unscaled  %*%  t(scale_inv)
     score <- sum(abs(colMeans_safe(weights*H_star%*%scale_inv*as.vector(Y-Q)) ))
 
-    if(abs(score) <= min(0.5,mean(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
+    if(abs(score) <= 1/n || abs(score) <= min(0.5,min(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
       converged_flag <- TRUE
       break
     }
@@ -168,16 +168,22 @@ spOR <- function(formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new
     se_grid <- apply(V_newer,1, function(m) {
       sqrt(sum(m * (var_scaled %*%m)))
     } )
-    preds_new <- data.frame(W_newer, estimate = est_grid, se = se_grid, lower_CI = est_grid - 1.96*se_grid/sqrt(n), upper_CI = est_grid + 1.96*se_grid/sqrt(n))
+    Zvalue <- abs(sqrt(n) * est_grid/se_grid)
+    pvalue <- signif(2*(1-pnorm(Zvalue)),5)
+    preds_new <- cbind(W_newer,  est_grid,   se_grid/sqrt(n),  se_grid, est_grid - 1.96*se_grid/sqrt(n), est_grid + 1.96*se_grid/sqrt(n),  Zvalue,  pvalue)
+    colnames(preds_new) <- c(colnames(W_newer), "estimate",  "se/sqrt(n)", "se", "lower_CI",  "upper_CI", "Z-value", "p-value" )
     return(preds_new)
   }
 
   preds_new <- compute_predictions(W_new)
 
   se <- sqrt(diag(var_scaled))
-  ci <- cbind(estimates, se, estimates - 1.96*se/sqrt(n), estimates + 1.96*se/sqrt(n))
-  colnames(ci) <- c("coefs", "se", "lower_CI", "upper_CI")
+  Zvalue <- abs(sqrt(n) * estimates/se)
+  pvalue <- signif(2*(1-pnorm(Zvalue)),5)
+  ci <- cbind(estimates,   se/sqrt(n), se ,estimates - 1.96*se/sqrt(n), estimates + 1.96*se/sqrt(n), Zvalue, pvalue)
+  colnames(ci) <- c("coefs",   "se/sqrt(n)", "se","lower_CI", "upper_CI", "Z-value", "p-value")
   output <- list(coefs = ci, var_mat = var_scaled, logOR_at_W_new = preds_new, pred_function = compute_predictions,   learner_fits = list(A = fit_A, Y = fit_Y), converged_flag = converged_flag)
+  class(output) <- c("spOR","npOddsRatio")
   return(output)
   #######
 

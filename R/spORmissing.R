@@ -36,7 +36,7 @@
 #' By default, Lrnr_hal9001 is used.
 #' @importFrom doMC registerDoMC
 #' @export
-spORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta= NULL, sl3_learner_Delta = NULL,  glm_formula_YZ = NULL, sl3_learner_YZ = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)), parallel = F,ncores = NULL, ... ) {
+spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given. Use spOR or npOR instead if the variable `Z` is not used"), Delta, weights = NULL, W_new = W, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta= NULL, sl3_learner_Delta = NULL,  glm_formula_YZ = NULL, sl3_learner_YZ = NULL, glm_formula_Y0W = NULL, smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(20,5), reduce_basis = 1e-3, fit_control = list(), sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)), parallel = F,ncores = NULL, ... ) {
 
   if(parallel) {
     doMC::registerDoMC(ncores)
@@ -280,24 +280,52 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z, Delta, weights = NULL, W_
 
   var_scaled <-  var_scaled
 
-
   compute_predictions <- function(W_newer) {
     V_newer <- model.matrix(formula, data = as.data.frame(W_newer))
     est_grid <-V_newer%*%estimates
     se_grid <- apply(V_newer,1, function(m) {
       sqrt(sum(m * (var_scaled %*%m)))
     } )
-    preds_new <- data.frame(W_newer, estimate = est_grid, se = se_grid, lower_CI = est_grid - 1.96*se_grid/sqrt(n), upper_CI = est_grid + 1.96*se_grid/sqrt(n))
+    Zvalue <- abs(sqrt(n) * est_grid/se_grid)
+    pvalue <- signif(2*(1-pnorm(Zvalue)),5)
+    preds_new <- cbind(W_newer,  est_grid,   se_grid/sqrt(n),  se_grid, est_grid - 1.96*se_grid/sqrt(n), est_grid + 1.96*se_grid/sqrt(n),  Zvalue,  pvalue)
+    colnames(preds_new) <- c(colnames(W_newer), "estimate",  "se/sqrt(n)", "se", "lower_CI",  "upper_CI", "Z-value", "p-value" )
     return(preds_new)
   }
 
   preds_new <- compute_predictions(W_new)
 
   se <- sqrt(diag(var_scaled))
-  ci <- cbind(estimates, se, estimates - 1.96*se/sqrt(n), estimates + 1.96*se/sqrt(n))
-  colnames(ci) <- c("coefs", "se", "lower_CI", "upper_CI")
+  Zvalue <- abs(sqrt(n) * estimates/se)
+  pvalue <- signif(2*(1-pnorm(Zvalue)),5)
+  ci <- cbind(estimates,   se/sqrt(n), se ,estimates - 1.96*se/sqrt(n), estimates + 1.96*se/sqrt(n), Zvalue, pvalue)
+  colnames(ci) <- c("coefs",   "se/sqrt(n)", "se","lower_CI", "upper_CI", "Z-value", "p-value")
   output <- list(coefs = ci, var_mat = var_scaled, logOR_at_W_new = preds_new, pred_function = compute_predictions,   learner_fits = list(A = fit_A, Y = fit_Y), converged_flag = converged_flag)
+  class(output) <- c("spORMissing","npOddsRatio")
   return(output)
   #######
 
 }
+
+
+
+  # compute_predictions <- function(W_newer) {
+  #   V_newer <- model.matrix(formula, data = as.data.frame(W_newer))
+  #   est_grid <-V_newer%*%estimates
+  #   se_grid <- apply(V_newer,1, function(m) {
+  #     sqrt(sum(m * (var_scaled %*%m)))
+  #   } )
+  #   preds_new <- data.frame(W_newer, estimate = est_grid, se = se_grid, lower_CI = est_grid - 1.96*se_grid/sqrt(n), upper_CI = est_grid + 1.96*se_grid/sqrt(n))
+  #   return(preds_new)
+  # }
+  #
+  # preds_new <- compute_predictions(W_new)
+  #
+  # se <- sqrt(diag(var_scaled))
+  # ci <- cbind(estimates, se, estimates - 1.96*se/sqrt(n), estimates + 1.96*se/sqrt(n))
+  # colnames(ci) <- c("coefs", "se", "lower_CI", "upper_CI")
+  # output <- list(coefs = ci, var_mat = var_scaled, logOR_at_W_new = preds_new, pred_function = compute_predictions,   learner_fits = list(A = fit_A, Y = fit_Y), converged_flag = converged_flag)
+  # return(output)
+  #######
+
+
