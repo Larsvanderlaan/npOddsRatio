@@ -29,7 +29,7 @@
 #' By default, Lrnr_hal9001 is used.
 #' @export
 #'
-npOR  <- function(working_formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W,  glm_formula_Y0W = NULL, sl3_learner_Y0W = NULL,  glm_formula_OR = NULL, sl3_learner_OR = NULL, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta = NULL, sl3_learner_Delta = NULL, sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(30,10)) ) {
+npOR  <- function(working_formula = logOR~1, W, A, Y, Delta = NULL, weights = NULL, W_new = W,  glm_formula_Y0W = NULL, sl3_learner_Y0W = NULL,  glm_formula_OR = NULL, sl3_learner_OR = NULL, glm_formula_A = NULL, sl3_learner_A = NULL, glm_formula_Delta = NULL, sl3_learner_Delta = NULL, sl3_learner_default = Lrnr_hal9001_custom$new(max_degree =2, smoothness_orders = 1, num_knots = c(20,10)) ) {
 
   W <- as.matrix(W)
   if(is.null(Delta)) {
@@ -188,8 +188,7 @@ npOR  <- function(working_formula = logOR~1, W, A, Y, Delta = NULL, weights = NU
     var_scaled <- as.matrix(var(EIFY))
 
     score <- sum(abs(colMeans_safe(EIFY) ))
-    print("score")
-    print(as.vector(score))
+
 
     if(abs(score) <= min(0.5,mean(sqrt(diag(var_scaled))))/sqrt(n)/log(n)){
       converged_flag <- TRUE

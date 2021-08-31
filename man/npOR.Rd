@@ -21,7 +21,7 @@ npOR(
   glm_formula_Delta = NULL,
   sl3_learner_Delta = NULL,
   sl3_learner_default = Lrnr_hal9001_custom$new(max_degree = 2, smoothness_orders = 1,
-    num_knots = c(30, 10))
+    num_knots = c(20, 10))
 )
 }
 \arguments{

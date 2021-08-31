@@ -5,25 +5,30 @@
 \title{Semiparametric Targeted inference for the conditional odds ratio with outcome missingness.}
 \usage{
 spOR(
-  formula = logOR ~ 1,
+  formula = ~1,
   W,
   A,
   Y,
+  data = NULL,
   Delta = NULL,
   weights = NULL,
   W_new = W,
+  data_new = data,
   glm_formula_A = NULL,
   sl3_learner_A = NULL,
   glm_formula_Y0W = NULL,
   smoothness_order_Y0W = 1,
   max_degree_Y0W = 2,
-  num_knots_Y0W = c(20, 5),
+  num_knots_Y0W = c(25, 15, 5),
   reduce_basis = 0.001,
   fit_control = list(),
   sl3_learner_default = Lrnr_hal9001_custom$new(max_degree = 2, smoothness_orders = 1,
-    num_knots = c(30, 10)),
+    num_knots = c(25, 15)),
   parallel = F,
   ncores = NULL,
+  targeting_method = c("universal", "iterative"),
+  fit_Q0W_separate = F,
+  boundsOR = c(0.001, 1000),
   ...
 )
 }

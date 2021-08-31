@@ -192,41 +192,181 @@ print(rowMeans(passes2))
 ```
 
 ```{r}
-passes <- c()
+rowMeans(ci)
+rowMeans(ci1)
+rowMeans(ci2)
+```
 
-for(i in 1:100){
-n <- 5000
+
+
+```{r}
+ci <- c()
+ci1 <- c()
+ci2 <- c()
+passes <- c()
+passesb <- c()
+passesc <- c()
+passes1 <- c()
+ests <- c()
+ests1 <- c()
+for(i in 1:200){
+  print(i)
+ 
 D <- DAG.empty()
 
 D <- D +
   node("W1", distr = "runif", min = -1, max = 1) +
   node("W2", distr = "runif", min = -1, max = 1) +
-  node("A", distr = "rbinom", size = 1, prob = plogis(W1 + W2) )+
-  node("T", distr = "rweibull", shape=2, scale = exp(1-A))+
-  node("R", distr = "rbinom", size = 1, prob =  plogis(2+W1 + W2 - A)) +
-  node("mu", distr = "rconst", const = plogis(-1+A + A*(W1 + W2  +T) + W1 + W2 + W1*W2))+
+  node("Tfull", distr = "rweibull", shape=4, scale = exp(1 ))+
+   node("T",  distr = "rconst", const = min(Tfull/2,5))+
+  node("A", distr = "rbinom", size = 1, prob = plogis(0.7*(W1 + W2 + T-1) ))+
+  node("R", distr = "rbinom", size = 1, prob =  1) +
+  node("mu", distr = "rconst", const =  plogis( 0.8*(-1.25  +A   + T +   0.8*( T + W1 +   W2  - W1*W2 + T*W2 + T*W1 ))))+
   node("J", distr = "rbinom", size = 1, prob = mu) +
-  node("G", distr = "rconst",const = 1- 0.25*plogis(W1 + W2  +A-0.5 ))+
+  node("G", distr = "rconst",const = 1- 0.25*plogis(W1 + W2   ))+
+  node("Delta", distr = "rbinom", size = 1, prob = 1)+
+  node("Jobs", distr = "rconst",const = J * Delta*R) 
+
+setD <- set.DAG(D )
+# data <- sim(setD, n = 250000)
+# fit_glm <- glm(Jobs~ T + W1 + W2 + A + A*T  , family = binomial(), data=data[data$Delta==1,] )
+# coef(fit_glm)
+data <- sim(setD, n = 150)
+print(quantile(data$mu))
+table(data$Delta)
+ 
+ 
+ 
+
+ 
+true <- 0.8*c(1)
+library(doMC)
+registerDoMC(10)
+
+fit <- spOR(~ 1     , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs , data = data,
+            Delta = data$Delta, num_knots_Y0W = c(20,10,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,10,2),fit_control = list(parallel = T, n_folds = 20)), fit_control = list(parallel = T, n_folds = 20), targeting_method = "universal", smoothness_order_Y0W =1 ,fit_Q0W_separate = F )
+
+tmpci <- fit$coefs
+  print(summary(fit))
+passes <- cbind(passes, tmpci[,4] <= true & tmpci[,5] >= true)
+ 
+fit <- spOR(~ 1     , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs , data = data,
+            Delta = data$Delta, num_knots_Y0W = c(20,10,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(20,10,2),fit_control = list(parallel = T, n_folds = 10)), fit_control = list(parallel = T, n_folds = 10), targeting_method = "universal", smoothness_order_Y0W =1  )
+# 
+tmpci <- fit$coefs
+ print(summary(fit))
+passes1 <- cbind(passes1, tmpci[,4] <= true & tmpci[,5] >= true)
+
+print(rowMeans(passes))
+print(rowMeans(passes1))
+
+ 
+
+########
+ 
+ 
+ 
+
+}
+
+
+
+```
+
+
+
+```{r}
+# ci <- c()
+# ci1 <- c()
+# ci2 <- c()
+# passes <- c()
+# passesb <- c()
+# passesc <- c()
+# passes1 <- c()
+# ests <- c()
+# ests1 <- c()
+for(i in 1:100){
+  print(i)
+n <-  5000
+D <- DAG.empty()
+
+D <- D +
+  node("W1", distr = "runif", min = -1, max = 1) +
+  node("W2", distr = "runif", min = -1, max = 1) +
+  node("Tfull", distr = "rweibull", shape=4, scale = exp(1 ))+
+   node("T",  distr = "rconst", const = min(Tfull/2,5))+
+  node("A", distr = "rbinom", size = 1, prob = plogis(0.5*(W1 + W2 + T-1) ))+
+   
+  node("R", distr = "rbinom", size = 1, prob =  1) +
+  node("mu", distr = "rconst", const =  plogis( 0.8*(-1.25  +A -1* A*(T)  +   0.8*( T + W1 +   W2  - W1*W2 + T*W2 + T*W1 ))))+
+  node("J", distr = "rbinom", size = 1, prob = mu) +
+  node("G", distr = "rconst",const = 1- 0.3*plogis(W1 + W2   ))+
   node("Delta", distr = "rbinom", size = 1, prob = G)+
   node("Jobs", distr = "rconst",const = J * Delta*R) 
 
 setD <- set.DAG(D )
+# data <- sim(setD, n = 250000)
+# fit_glm <- glm(Jobs~ T + W1 + W2 + A + A*T  , family = binomial(), data=data[data$Delta==1,] )
+# coef(fit_glm)
 data <- sim(setD, n = n)
-data <- data[data$R==1,]
+print(quantile(data$mu))
+table(data$Delta)
+ 
  
 
-true <- c(1, 1,1,1)
+ 
+true <- 0.8*c(1,-1)
 library(doMC)
-registerDoMC(8)
+registerDoMC(10)
 
-fit <- spOR(~ 1 + W1 + W2 + T   , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs ,
-            Delta = data$Delta, num_knots_Y0W = c(10,5,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(5,1)),fit_control = list(parallel = T)  )
+fit <- spOR(~ 1 + T   , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs ,
+            Delta = data$Delta, num_knots_Y0W = c(15,10,0), max_degree_Y0W = 2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(10,5,2),fit_control = list(parallel = T, n_folds = 10)), fit_control = list(parallel = T, n_folds = 10), targeting_method = "universal", smoothness_order_Y0W =1 ,fit_Q0W_separate = F )
 
-ci <- fit$coefs
-passes <- cbind(passes, ci[,4] <= true & ci[,5] >= true)
-print(summary(fit))
+tmpci <- fit$coefs
+print(tmpci)
+ests <- cbind(ests,  fit$coefs[,1])
+ci <- cbind(ci, apply(tmpci[,c(4,5)],1,diff))
+passes <- cbind(passes, tmpci[,4] <= true & tmpci[,5] >= true)
+ 
 print(rowMeans(passes))
 
+##########
+
+ 
+fit <- spOR(~ 1 + T   , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs, Delta = data$Delta 
+             , glm_formula_Y0W = ~.^2, sl3_learner_A = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(10,5,2),fit_control = list(parallel = T, n_folds = 10))     )
+
+tmpci <- fit$coefs
+ 
+passesb <- cbind(passesb, tmpci[,4] <= true & tmpci[,5] >= true)
+print(rowMeans(passesb))
+
+
+########
+ 
+
+fit <- npOR(~ 1 + T   , W = data[,c("W1", "W2", "T")], A = data$A, Y = data$Jobs ,
+            Delta = data$Delta,    sl3_learner_default = Lrnr_hal9001_custom$new(max_degree=2,num_knots = c(10,5,0), fit_control = list(parallel = T)))
+
+tmpci <- fit$coefs
+print(tmpci)
+ 
+ci2 <- cbind(ci2, apply(tmpci[,c(4,5)],1,diff))
+passesc <- cbind(passesc, tmpci[,4] <= true & tmpci[,5] >= true)
+print(rowMeans(passesc))
+
+
+########
+ 
+
+fit_glm <- glm(Jobs~ T + W1 + W2 + A + A*T  , family = binomial(), data=data[data$Delta==1,] )
+tmpci1 <- confint(fit_glm)[5:6,,drop = F]
+ci1 <- cbind(ci1, apply(tmpci1,1,diff))
+ests1 <- cbind(ests1,  coef(fit_glm)[5:6])
+passes1 <- cbind(passes1,  tmpci1[,1] <= true & tmpci1[,2] >= true)
+ 
+print(rowMeans(passes1))
+ 
 
 }
 

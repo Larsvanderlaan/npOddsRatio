@@ -92,10 +92,10 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     data_YZ1$A <- 1
     task_YZ1 <- sl3_Task$new(data_YZ1, covariates = covariates_YZ, outcome = "Y", outcome_type = "binomial", weights = "weights" )
     fit_YZ <- sl3_learner_YZ$train(task_YZ[keep])
-    barQ <- bound(fit_YZ$predict(task_YZ),0.001)
+    barQ <- bound(fit_YZ$predict(task_YZ),0.0005)
     print(quantile(barQ))
-    barQ1 <- bound(fit_YZ$predict(task_YZ1),0.001)
-    barQ0 <- bound(fit_YZ$predict(task_YZ0),0.001)
+    barQ1 <- bound(fit_YZ$predict(task_YZ1),0.0005)
+    barQ0 <- bound(fit_YZ$predict(task_YZ0),0.0005)
   } else {
     # Use glm if formula supplied
 
@@ -105,9 +105,9 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     X0 <- cbind(W_np, 0*W_np)
     fit_Y <- glm.fit(X,Y, weights = Delta*weights, family = binomial(), intercept = F)
     cfs <- coef(fit_Y)
-    barQ <- bound(as.vector(plogis(X%*%cfs)),0.001)
-    barQ1 <- bound(as.vector(plogis(X1%*%cfs)),0.001)
-    barQ0 <- bound(as.vector(plogis(X0%*%cfs)),0.001)
+    barQ <- bound(as.vector(plogis(X%*%cfs)),0.0005)
+    barQ1 <- bound(as.vector(plogis(X1%*%cfs)),0.0005)
+    barQ0 <- bound(as.vector(plogis(X0%*%cfs)),0.0005)
   }
 
   print("Learning Q")
@@ -122,7 +122,7 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     Q <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(A*V))
     Q0 <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(0*V))
     Q1 <- predict(fit_Y, new_data = as.matrix(W), new_X_unpenalized = as.matrix(1*V))
-    print(quantile(Q))
+
   } else {
     # Use glm if formula supplied
     W_np <- model.matrix(glm_formula_Y_W, data = as.data.frame(W))
@@ -135,7 +135,15 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     Q1 <- as.vector(plogis(X1%*%cfs))
     Q0 <- as.vector(plogis(X0%*%cfs))
   }
-
+  denom <- pmax((1-Q1)*(Q0), 1e-8)
+  num <- Q1*(1-Q0)
+  OR <- num/denom
+  logOR <-  log(pmin(pmax(OR, 1e-8), 5000) )
+  beta <- as.vector(coef(glm(logOR~V-1, family = gaussian(), data = list(V=V, logOR = logOR ))))
+  logOR <- V%*%beta
+  Q0 <- bound(Q0, 1e-6)
+  Q1 <- plogis(qlogis(Q0) + logOR)
+  Q <- ifelse(A==1, Q1, Q0)
   ################################
   #### Learn P(A=1|X) ############
   ################################
@@ -172,13 +180,13 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     data_A$weights <- weights
     task_A <- sl3_Task$new(data_A, covariates = covariates_A, outcome = "A", outcome_type = "binomial", weights = "weights" )
     fit_A <- sl3_learner_A$train(task_A)
-    g1 <- bound(fit_A$predict(task_A),0.0001)
+    g1 <- bound(fit_A$predict(task_A),0.0005)
   } else {
     # use glm is formula supplied
     W_g <- model.matrix(glm_formula_A, data = as.data.frame(W))
     fit_A <- glm.fit(W_g,A, weights = weights, family = binomial(), intercept = F)
     cfs <- coef(fit_A)
-    g1 <- bound(as.vector(plogis(W_g%*%cfs)),0.0001)
+    g1 <- bound(as.vector(plogis(W_g%*%cfs)),0.0005)
   }
 
 
@@ -198,10 +206,10 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     ################################
     for(j in 1:10) {
 
-      h_star <- V* as.vector(-(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
-      H_star <- (A*V + h_star)
-      H_star1 <- (V + h_star)
-      H_star0 <-  h_star
+      h_star <-  as.vector(-(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
+      H_star <- V*(A + h_star)
+      H_star1 <- V*(1 + h_star)
+      H_star0 <-  V*h_star
       scale <- apply(V,2, function(v){colMeans_safe(weights*as.vector( Q1*(1-Q1) * Q0*(1-Q0) * g1 * (1-g1) / (g1 * Q1*(1-Q1) + (1-g1) *Q0*(1-Q0) )) * v*V)})
       scale_inv <- solve(scale)
       var_unscaled <- as.matrix(var(weights*H_star*(Y-Q)))
@@ -223,10 +231,10 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     ################################
     ##### Update barQ ###########
     ################################
-    h_star <- V* as.vector(-(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
-    H_star <- (A*V + h_star)
-    H_star1 <- (V + h_star)
-    H_star0 <-  h_star
+    h_star <- as.vector(-(g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
+    H_star <- V*(A + h_star)
+    H_star1 <- V*(1 + h_star)
+    H_star0 <-  V*h_star
 
     scale <- apply(V,2, function(v){colMeans_safe(weights*as.vector( Q1*(1-Q1) * Q0*(1-Q0) * g1 * (1-g1) / (g1 * Q1*(1-Q1) + (1-g1) *Q0*(1-Q0) )) * v*V)})
     scale_inv <- solve(scale)
@@ -243,10 +251,10 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
     ################################
     ##### Check convergence ###########
     ################################
-    h_star <- -V* as.vector((g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
-    H_star <- (A*V + h_star)
-    H_star1 <- (V + h_star)
-    H_star0 <-  h_star
+    h_star <- -1* as.vector((g1*Q1*(1-Q1)) / (g1*Q1*(1-Q1) + (1-g1)*Q0*(1-Q0)))
+    H_star <- V*(A + h_star)
+    H_star1 <- V*(1 + h_star)
+    H_star0 <-  V*h_star
 
     scale <- apply(V,2, function(v){colMeans_safe(weights*as.vector(Q1*(1-Q1) * Q0*(1-Q0) * g1 * (1-g1) / (g1 * Q1*(1-Q1) + (1-g1) *Q0*(1-Q0) )) * v*V)})
     scale_inv <- solve(scale)
@@ -272,8 +280,10 @@ spORmissing <- function(formula = logOR~1, W, A, Y, Z= stop("No Z variable given
 
 
   # Cheap way of extracting coefficients.
-  logOR <- log((Q1*(1-Q0)/((1-Q1)*(Q0))))
-
+  denom <- pmax((1-Q1)*(Q0), 1e-8)
+  num <- Q1*(1-Q0)
+  OR <- num/denom
+  logOR <- log(pmax(OR, 1e-8))
   estimates <- as.vector(coef(suppressWarnings(glm(logOR~V-1, family = gaussian(), data = list(V=V, logOR = logOR )))))
 
 

@@ -9,7 +9,8 @@ spORmissing(
   W,
   A,
   Y,
-  Z,
+ 
+    Z = stop("No Z variable given. Use spOR or npOR instead if the variable `Z` is not used"),
   Delta,
   weights = NULL,
   W_new = W,

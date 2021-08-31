@@ -25,4 +25,4 @@ Depends:
   data.table,
   R6
 RoxygenNote: 7.1.1
-Remotes: github::tlverse/hal9001@Larsvanderlaan-patch-quantizer, github::tlverse/sl3@devel
+Remotes: github::tlverse/hal9001@devel, github::tlverse/sl3@devel
