@@ -1,16 +1,15 @@
 
 
 
-#' Semiparametric targeted conditional average treatment effect estimation.
-#'
-#' @param formula_logRR R-formula object specifying model for CATE
-#' @param family_RR A R-family object specifying the link function for the CATE
+#' Semiparametric targeted conditional relative risk/treatment effect using machine-learning
+#' RR(W) := E[Y|A=1/W] / E[Y|A=0,W]
+#' @param formula_logRR R-formula object specifying model for log relative risk
+#' @param family_RR A R-family object specifying the link function for the log relative risk (gaussian/identity implies formula_logRR is directly modelling the log RR)
 #' @param W A matrix of baseline covariates to condition on.
 #' @param A A binary treatment assignment vector
-#' @param Y An outcome variable (continuous or binary)
+#' @param Y A nonnegative outcome variable. Can be binary, a count, or a continuous nonnegative variable.
 #' @param sl3_Lrnr_A An optional sl3-Learner object to estimate P(A=1|W)
 #' @param sl3_Lrnr_Y An optional sl3-Learner object to estimate nuisance conditional means E[Y|A=0,W] and E[Y|A=1,W]
-#' @param sl3_Lrnr_sigma An sl3-Learner object to estimate conditional variance (if outcome is non-binary)
 #' @param weights A vector of optional weights.
 #' @param smoothness_order Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.
 #' @param num_knots Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.

@@ -46,7 +46,7 @@ D <- D +
 
 
 setD <- set.DAG(D )
-n <- 2500
+n <- 1500
 data <- sim(setD, n = n)
 
 

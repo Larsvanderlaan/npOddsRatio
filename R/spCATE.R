@@ -2,23 +2,22 @@
 
 
 #' Semiparametric targeted conditional average treatment effect estimation.
-#'
+#' CATE(W) := E[Y|A=1,W] - E[Y|A=0,W]
 #' @param formula_CATE R-formula object specifying model for CATE
 #' @param family_CATE A R-family object specifying the link function for the CATE
 #' @param W A matrix of baseline covariates to condition on.
 #' @param A A binary treatment assignment vector
 #' @param Y An outcome variable (continuous or binary)
 #' @param sl3_Lrnr_A An optional sl3-Learner object to estimate P(A=1|W)
-#' @param sl3_Lrnr_Y_optional An optional sl3-Learner object to estimate nuisance conditional means E[Y|A=0,W] and E[Y|A=1,W]
-#' @param sl3_Lrnr_sigma An sl3-Learner object to estimate conditional variance (if outcome is non-binary)
+#' @param sl3_Lrnr_Y An optional sl3-Learner object to estimate nuisance conditional means E[Y|A=0,W] and E[Y|A=1,W]
 #' @param weights A vector of optional weights.
 #' @param smoothness_order_Y0W Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.
 #' @param num_knots_Y0W Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.
 #' @param max_degree_Y0W Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.
 #' @param fit_control Specification for default HAL learner (used if sl3 Learners not given). See spOR for use.
 #'
-spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_Lrnr_A = NULL, sl3_Lrnr_Y_optional = NULL, sl3_Lrnr_sigma = NULL, weights = NULL,  smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(15,5), fit_control = list()){
-  fit_separate <- !is.null(sl3_Lrnr_Y_optional) || family_CATE$family != "gaussian" || family_CATE$link != "identity"
+spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_Lrnr_A = NULL, sl3_Lrnr_Y = NULL, weights = NULL,  smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(15,5), fit_control = list()){
+  fit_separate <- !is.null(sl3_Lrnr_Y) || family_CATE$family != "gaussian" || family_CATE$link != "identity"
   default_learner <- Lrnr_hal9001$new(smoothness_orders = smoothness_order_Y0W, num_knots = num_knots_Y0W, max_degree = max_degree_Y0W, fit_control = fit_control )
 
   W <- as.matrix(W)
@@ -30,8 +29,8 @@ spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_L
     weights <- rep(1,n)
   }
   fit_control$weights <- weights
-  if(is.null(sl3_Lrnr_Y_optional)) {
-    sl3_Lrnr_Y_optional <- default_learner
+  if(is.null(sl3_Lrnr_Y)) {
+    sl3_Lrnr_Y <- default_learner
   }
   if(is.null(sl3_Lrnr_A)) {
     sl3_Lrnr_A <- default_learner
@@ -57,7 +56,7 @@ spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_L
 
 
 
-  fit_separate <- !is.null(sl3_Lrnr_Y_optional)
+  fit_separate <- !is.null(sl3_Lrnr_Y)
 
   # Estimate part lin Q
   if(!fit_separate){
@@ -74,10 +73,10 @@ spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_L
     data_Y0 <- data.frame(W, A = 0, Y=Y, weights = weights)
     task_Y0 <- sl3_Task$new(data_Y0, covariates = c(colnames(W), "A"), outcome = "Y", weights= "weights")
 
-    sl3_Lrnr_Y_optional <- sl3_Lrnr_Y_optional$train(task_Y)
-    Q <-  sl3_Lrnr_Y_optional$predict(task_Y)
-    Q1 <-  sl3_Lrnr_Y_optional$predict(task_Y1)
-    Q0 <-  sl3_Lrnr_Y_optional$predict(task_Y0)
+    sl3_Lrnr_Y <- sl3_Lrnr_Y$train(task_Y)
+    Q <-  sl3_Lrnr_Y$predict(task_Y)
+    Q1 <-  sl3_Lrnr_Y$predict(task_Y1)
+    Q0 <-  sl3_Lrnr_Y$predict(task_Y0)
 
   }
 
@@ -123,7 +122,7 @@ spCATE <- function(formula_CATE =  ~1, W, A, Y, family_CATE = gaussian(),  sl3_L
     #sigma21 <- EY2_1 - Q1^2
   }
 
-
+  one_step <- mean((A-g1)*(Y-Q0))/ mean((A-g1)*A)
 
   for(i in 1:100) {
     gradM <- family_CATE$mu.eta(V%*%beta)*V
