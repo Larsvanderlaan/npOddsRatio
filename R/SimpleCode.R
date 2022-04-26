@@ -1,4 +1,7 @@
+
+library(R6)
 spOR <- function(formula, W, A, Y, data, EY1, EY0, pA1) {
+  n <- length(A)
   data <- as.data.frame(data)
   A <- data[, A]
   Y <- data[,Y]
@@ -191,3 +194,13 @@ Lrnr_hal9001_semiparametric <- R6Class(
   )
 )
 
+colMeans_safe <- function(X) {
+  X <- as.matrix(X)
+  if(ncol(X)==1){
+    return(mean(as.vector(X)))
+  }
+  return(colMeans(X))
+}
+bound <- function(x, b){
+  pmax(pmin(x,1-b),b)
+}

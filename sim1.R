@@ -1,54 +1,40 @@
----
-title: "Simulations"
-output:
-  pdf_document: default
-  html_document: default
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
- 
-```{r}
-
-
-ns <- 2*c(   15000, 250, 500, 2500, 1000)
-passes_list <- list()
-all_coefs_list <- list()
-for(n in ns){
+ns <- 2*c(   5000, 250, 500, 2500, 1000)
+library(future)
+library(future.apply)
+plan(multiprocess)
+true <- 1
+output <- future_lapply(ns, function(n) {
   passes <- c()
   all_coefs<- c()
   for(i in 1:250){
-    
-  
-    
-     
+
+
+
+
     library(MASS)
-    X <- MASS::mvrnorm(n = n, 
-                  mu = c(0, 0 ), 
-                  Sigma = rbind(0.5*c(1, 0.5   ),
-                                 c(0.5, 1 ) 
-                                  ))
+    X <- MASS::mvrnorm(n = n,
+                       mu = c(0, 0 ),
+                       Sigma = rbind(0.5*c(1, 0.5   ),
+                                     c(0.5, 1 )
+                       ))
     W1 <- bound(X[,1], c(-1.5,1.5))
     W2 <- bound(X[,2], c(-1.5,1.5))
-     
+
     A <- rbinom(n, size = 1, plogis(0.75*(X %*% c(1,-1 ) )))
     Tvar <- rweibull(n,shape = 3, scale = 1/exp(0.1 * (W1 + W2 - 0.5)))
     Tcenter <- Tvar-1
-     
-   Q <- plogis( A * (1 +  Tcenter)  + 0.4*((1+W1)^2/3 - (1+W2)^2/3 + (1 + Tcenter)^2/3 + 2*(W1 + W1*(W1>=0)) *(-W2 + W2*(W2>=0)) +   Tcenter*(W1 + W2)))
-   
+
+    Q <- plogis( A * (1 +  Tcenter)  + 0.4*((1+W1)^2/3 - (1+W2)^2/3 + (1 + Tcenter)^2/3 + 2*(W1 + W1*(W1>=0)) *(-W2 + W2*(W2>=0)) +   Tcenter*(W1 + W2)))
+
     J <- rbinom(n, 1, Q )
-    
+
     R <- rbinom(n, size = 1, prob = plogis(0.5*(W1 + W2 + A - 1 + Tcenter)))
     R <- 1
     data <- data.frame(W1, W2, A, Tcenter, J, R)
     data <- data[data$R==1,]
-    
-    
-    
+
+
+
     A <- data$A
     Y <- data$J
     W <- as.matrix(data[,c("Tcenter", "W1", "W2")])
@@ -63,7 +49,7 @@ for(n in ns){
     data0$A <- 0
     task_Y0 <- sl3_Task$new(data0, covariates = c("Tcenter", "W1", "W2", "A"), outcome = "J")
     task_Y1 <- sl3_Task$new(data1, covariates = c("Tcenter", "W1", "W2", "A"), outcome = "J")
-    
+
     lrnr_sp <- Stack$new(
       Lrnr_glm_semiparametric$new(~ 1 + Tcenter, lrnr_baseline = Lrnr_glm$new(), append_interaction_matrix = TRUE, family = binomial()),
       Lrnr_glm_semiparametric$new(~ 1 + Tcenter, lrnr_baseline = Lrnr_glmnet$new(), append_interaction_matrix = TRUE, family = binomial()),
@@ -77,7 +63,7 @@ for(n in ns){
     lrnr_sp <- lrnr_sp$compute()
     EY1 <- lrnr_sp$predict(task_Y1)
     EY0 <- lrnr_sp$predict(task_Y0)
-    
+
     lrnr_A <- Stack$new(
       Lrnr_glmnet$new(),
       Lrnr_gam$new(),
@@ -87,134 +73,50 @@ for(n in ns){
       Lrnr_xgboost$new(max_depth = 5 )
     )
     lrnr_A <- make_learner(Pipeline, Lrnr_cv$new(lrnr_A, full_fit = TRUE), Lrnr_cv_selector$new(loss_loglik_binomial))
-    
-   
+
+
     lrnr_A <- delayed_learner_train(lrnr_A, task_A)
     lrnr_A <- lrnr_A$compute()
     pA1 <- pmin(pmax(lrnr_A$predict(task_A), 0.005), 1-0.005)
-    
-    
+
+
     # spout <- spglm( formula = ~1 + Tcenter, W = c("Tcenter", "W1", "W2"), A  = "A", Y = "J", data = data, estimand = "OR", sl3_Learner_A = lrnr_A, sl3_Learner_Y = lrnr_Y, append_interaction_matrix = TRUE )
     spout <- spOR(formula = ~1 + Tcenter, W = c("Tcenter", "W1", "W2"), A  = "A", Y = "J", data = data, EY1, EY0, pA1)
-    
+
     # doMC::registerDoMC(cores = 11)
-    # spout <- spOR(formula = ~1 + Tcenter, W, A, Y, data = data, Delta = NULL, sl3_learner_A = Lrnr_hal9001$new(max_degree = 2, num_knots = c(10,8), fit_control = list(parallel = TRUE)), smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(10, 8),fit_control = list(parallel = TRUE)) 
+    # spout <- spOR(formula = ~1 + Tcenter, W, A, Y, data = data, Delta = NULL, sl3_learner_A = Lrnr_hal9001$new(max_degree = 2, num_knots = c(10,8), fit_control = list(parallel = TRUE)), smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(10, 8),fit_control = list(parallel = TRUE))
     pout <- glm(J~ W1 + W2 + A * (1 + Tcenter) + Tcenter , family = binomial, data = data)
-    n
-    
+    true <- c(1,1)
+
     coefs<-spout$coefs
     print(coefs[,1])
-    beta <- coefs[,1]
+
     lower <- coefs[,4]
     upper <- coefs[,5]
     print("ci width sp")
     print(upper - lower)
     pass <- lower <= true & upper >= true
-    
+
     print(coef( pout)[c(4,6)])
+    beta <-coef( pout)[c(4,6)]
     ci <- confint( pout)[c(4,6),,drop = F]
     lower <- ci[,1]
     upper <- ci[,2]
     print("ci width parametric")
     print(upper - lower)
-    
-    
+
+
     pass <- c(pass, lower <= true & upper >= true)
     all_coefs <- cbind(all_coefs, c(coefs,beta))
     passes <- cbind(passes, pass)
     print(rowMeans(passes))
-    
-    
+
+
   }
-  passes_list[[as.character(n)]] <- rowMeans(passes)
-  all_coefs_list[[as.character(n)]] <- all_coefs
-  save(passes_list,all_coefs_list, file =  "spORsim2.RData")
-}
+  return(list(n=n, all_coefs = all_coefs, passes = passes, true = true))
 
 
-```
+})
+save(output, file =  "spORsim1rerun1.RData")
 
 
-
-
-
-```{r}
-
- 
-ns <- 2*c( 500, 1000, 2500, 5000)
-passes_list <- list()
-all_coefs_list <- list()
-ci_widths <- list()
-for(n in ns){
-  passes <- c()
-  all_coefs<- c()
-  widths <- c()
-for(i in 1:500){
-library(simcausal)
-fun <- function(x){
-    pnorm(x, sd = 1.5)
-}
-D <- DAG.empty()
-print(n)
-print(i)
-D <- D +
-  node("W1", distr = "runif", min = -1, max = 1) +
-  node("W2", distr = "runif", min = -1, max = 1)  +
-  node("A", distr = "rbinom", size = 1, prob = plogis(0.75*(W1 + W2 ) ))+
-  node("T", distr = "rweibull", shape = 3, scale = 1/exp(0.1 * (W1 + W2 + A - 0.5)))+
-  node("Tcenter", distr = "rconst", const = (T - 1)) +
-  node("J", distr = "rbinom",size = 1, prob = plogis(-1 + A * (1 +  Tcenter)  + sin(5*W1) + sin(5*W2) +  (Tcenter) * (abs(W1) - abs(W2))  )) +
-  node("R", distr = "rbinom", size = 1, prob = plogis(0.4*(W1 + W2 + A - 1 + Tcenter)))
-true <- c(1)
-
-setD <- set.DAG(D, vecfun = c("fun") )
-data <- sim(setD, n = n)
-data <- data[data$R==1,]
-  
- 
- 
-A <- data$A
-Y <- data$J
-W <- as.matrix(data[,c("Tcenter", "W1", "W2")])
-
-doMC::registerDoMC(cores = 11)
- 
- 
- 
-
-spout <- spOR(formula = ~1 + Tcenter, W, A, Y, data = data, Delta = NULL, sl3_learner_A = Lrnr_hal9001$new(max_degree = 2, num_knots = c(10,8), fit_control = list(parallel = TRUE)), smoothness_order_Y0W = 1, max_degree_Y0W = 2, num_knots_Y0W = c(10,8),fit_control = list(parallel = TRUE)) 
-pout <- glm(J~ W1 + W2 + A * (1 + Tcenter) + Tcenter , family = binomial, data = data)
-n
-
-coefs<-spout$coefs
-print(coefs[,1])
-beta <- coefs[,1]
-lower <- coefs[,4]
-upper <- coefs[,5]
-print("ci width sp")
-print(upper - lower)
-width1 <- upper-lower
-pass <- lower <= true & upper >= true
-
-print(coef(pout)[c(4,6)])
-ci <- confint(pout)[c(4,6),,drop = F]
-lower <- ci[,1]
-upper <- ci[,2]
-print("ci width parametric")
-print(upper - lower)
-pass <- c(pass, lower <= true & upper >= true)
-all_coefs <- cbind(all_coefs, c(coefs,beta))
-passes <- cbind(passes, pass)
-widths <- cbind(widths, width1, upper - lower)
-print(rowMeans(passes))
-
-
-}
-  passes_list[[as.character(n)]] <- rowMeans(passes)
-  all_coefs_list[[as.character(n)]] <- all_coefs
-  ci_widths[[as.character(n)]] <- widths
-  save(passes_list,all_coefs_list, ci_widths, file =  "spORsim1.RData")
-}
-
-
-```
